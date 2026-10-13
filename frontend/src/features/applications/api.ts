@@ -136,6 +136,14 @@ export function getStatistics() {
 
 export type WritingStyle = "Professional" | "Formal" | "Modern" | "Concise" | "Enthusiastic";
 
+export interface MatchFactor {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  explanation: string;
+}
+
 export interface AiAnalysis {
   id: string;
   jobApplicationId: string;
@@ -146,6 +154,8 @@ export interface AiAnalysis {
   missingSkills: string[];
   recommendations: string[];
   suggestedLearningTopics: string[];
+  factors: MatchFactor[];
+  profileHints: string[];
   provider: string | null;
   model: string | null;
   createdAt: string;

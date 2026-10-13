@@ -32,7 +32,7 @@ public class AiOptions
 {
     public const string SectionName = "Ai";
 
-    /// <summary>KI-Funktionen sind optional und im MVP standardmaessig deaktiviert.</summary>
+    /// <summary>Schaltet kostenpflichtige KI-Anbieter frei. Die regelbasierte Analyse ist immer verfuegbar.</summary>
     public bool Enabled { get; set; }
 
     /// <summary>"openai" oder "anthropic".</summary>

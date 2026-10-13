@@ -24,6 +24,11 @@ public record UpdateProfileRequest(
     string? LastName,
     string? TargetJobTitle,
     string? Location,
+    string? ProfileSummary,
+    string? ExperienceSummary,
+    string? EducationSummary,
+    string? ResumeText,
+    IReadOnlyList<string>? Skills,
     string? ThemePreference);
 
 /// <summary>Profil des angemeldeten Benutzers.</summary>
@@ -35,6 +40,11 @@ public record CurrentUserResponse(
     string? LastName,
     string? TargetJobTitle,
     string? Location,
+    string? ProfileSummary,
+    string? ExperienceSummary,
+    string? EducationSummary,
+    string? ResumeText,
+    IReadOnlyList<string> Skills,
     string ThemePreference,
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt);

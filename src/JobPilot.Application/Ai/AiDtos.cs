@@ -8,6 +8,14 @@ public record GenerateCoverLetterRequest(
     WritingStyle Style = WritingStyle.Professional,
     bool IsDraft = true);
 
+/// <summary>Einzelner, gewichteter Faktor des Match-Scores.</summary>
+public record MatchFactorDto(
+    string Key,
+    string Label,
+    int Score,
+    int Weight,
+    string Explanation);
+
 /// <summary>Ergebnis einer KI-Analyse.</summary>
 public record AiAnalysisDto(
     Guid Id,
@@ -21,7 +29,9 @@ public record AiAnalysisDto(
     IReadOnlyList<string> SuggestedLearningTopics,
     string? Provider,
     string? Model,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<MatchFactorDto> Factors,
+    IReadOnlyList<string> ProfileHints);
 
 /// <summary>Generiertes Anschreiben.</summary>
 public record GeneratedCoverLetterDto(

@@ -1,12 +1,19 @@
-﻿using JobPilot.Application.Auth;
+﻿using System.Security.Cryptography;
+using JobPilot.Api.Services;
+using JobPilot.Application.Abstractions;
+using JobPilot.Application.Auth;
 using JobPilot.Application.Common;
+using JobPilot.Application.Matching;
+using JobPilot.Application.Profile;
 using JobPilot.Domain.Constants;
 using JobPilot.Domain.Entities;
+using JobPilot.Domain.Enums;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 namespace JobPilot.Api.Controllers;
 
@@ -18,8 +25,14 @@ namespace JobPilot.Api.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    JobPilot.Infrastructure.Persistence.JobPilotDbContext db,
+    ResumeParsingService resumeParsingService,
+    IResumeProfileExtractor resumeProfileExtractor,
+    IOptions<StorageOptions> storageOptions,
     ILogger<AuthController> logger) : ControllerBase
 {
+    private readonly StorageOptions _storageOptions = storageOptions.Value;
+
     /// <summary>Legt ein neues Konto an und meldet den Benutzer direkt an.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
@@ -119,6 +132,11 @@ public class AuthController(
         user.LastName = Normalize(request.LastName);
         user.TargetJobTitle = Normalize(request.TargetJobTitle);
         user.Location = Normalize(request.Location);
+        user.ProfileSummary = Normalize(request.ProfileSummary);
+        user.ExperienceSummary = Normalize(request.ExperienceSummary);
+        user.EducationSummary = Normalize(request.EducationSummary);
+        user.ResumeText = Normalize(request.ResumeText);
+        user.Skills = NormalizeSkills(request.Skills);
         user.ThemePreference = request.ThemePreference ?? user.ThemePreference;
 
         var result = await userManager.UpdateAsync(user);
@@ -130,6 +148,97 @@ public class AuthController(
 
         return Ok(await BuildResponseAsync(user));
     }
+
+    /// <summary>
+    /// Speichert einen Lebenslauf als Dokument und liefert einen Profilvorschlag.
+    /// Das Profil selbst wird erst ueber <see cref="UpdateProfile"/> geaendert.
+    /// </summary>
+    [HttpPost("profile/resume")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ResumeProfileSuggestion>> UploadResume(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            throw new ValidationFailedException("file", "Bitte wählen Sie eine gültige Datei aus.");
+        }
+
+        if (file.Length > _storageOptions.MaxFileSizeInBytes)
+        {
+            throw new ValidationFailedException("file", $"Die Datei ist größer als das erlaubte Limit von {_storageOptions.MaxFileSizeInBytes} Bytes.");
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        var allowedExtensions = _storageOptions.AllowedExtensions ?? [];
+        if (!allowedExtensions.Any(ext => string.Equals(ext, extension, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ValidationFailedException("file", "Dieses Dateiformat wird für Lebensläufe nicht unterstützt.");
+        }
+
+        // Die Datei wird genau einmal gelesen und fuer Parsing, Hash und Ablage wiederverwendet.
+        using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+
+        var extractedText = resumeParsingService.ExtractText(bytes, file.FileName);
+        if (string.IsNullOrWhiteSpace(extractedText))
+        {
+            throw new ValidationFailedException("file", "Die Datei konnte nicht als lesbarer Lebenslauf erkannt werden.");
+        }
+
+        var user = await GetCurrentUserAsync();
+
+        var uploadRoot = string.IsNullOrWhiteSpace(_storageOptions.UploadRoot)
+            ? "uploads"
+            : _storageOptions.UploadRoot;
+
+        var absoluteRoot = Path.IsPathRooted(uploadRoot)
+            ? uploadRoot
+            : Path.Combine(Directory.GetCurrentDirectory(), uploadRoot);
+
+        Directory.CreateDirectory(absoluteRoot);
+
+        var fileName = $"{Guid.CreateVersion7():N}{extension}";
+        var storagePath = Path.Combine(uploadRoot, fileName).Replace('\\', '/');
+        var fullPath = Path.Combine(absoluteRoot, fileName);
+
+        await System.IO.File.WriteAllBytesAsync(fullPath, bytes, cancellationToken);
+
+        try
+        {
+            db.UserDocuments.Add(new UserDocument
+            {
+                UserId = user.Id,
+                FileName = file.FileName,
+                StoragePath = storagePath,
+                ContentType = file.ContentType ?? "application/octet-stream",
+                SizeInBytes = file.Length,
+                DocumentType = DocumentType.Resume,
+                Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
+                ExtractedText = extractedText
+            });
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            // Ohne Datenbankeintrag waere die Datei verwaist.
+            System.IO.File.Delete(fullPath);
+            throw;
+        }
+
+        logger.LogInformation("Lebenslauf für Benutzer {UserId} hochgeladen und extrahiert.", user.Id);
+
+        return Ok(await resumeProfileExtractor.ExtractAsync(extractedText, cancellationToken));
+    }
+
+    /// <summary>Liefert einen Profilvorschlag aus eingefuegtem Lebenslauf-Text, ohne zu speichern.</summary>
+    [HttpPost("profile/resume/extract")]
+    [Authorize]
+    public async Task<ActionResult<ResumeProfileSuggestion>> ExtractResumeProfile(
+        ExtractResumeProfileRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await resumeProfileExtractor.ExtractAsync(request.ResumeText.Trim(), cancellationToken));
 
     /// <summary>Aendert das eigene Passwort und erneuert die Sitzung.</summary>
     [HttpPost("change-password")]
@@ -175,6 +284,11 @@ public class AuthController(
             user.LastName,
             user.TargetJobTitle,
             user.Location,
+            user.ProfileSummary,
+            user.ExperienceSummary,
+            user.EducationSummary,
+            user.ResumeText,
+            [.. user.Skills.Where(skill => !string.IsNullOrWhiteSpace(skill)).Select(skill => skill.Trim())],
             user.ThemePreference,
             [.. roles],
             user.CreatedAt);
@@ -182,6 +296,13 @@ public class AuthController(
 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static List<string> NormalizeSkills(IReadOnlyList<string>? skills) =>
+        skills?
+            .Where(skill => !string.IsNullOrWhiteSpace(skill))
+            .Select(SkillCatalog.Canonicalize)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
 
     private static ValidationFailedException ToValidationException(IdentityResult result, string field)
     {

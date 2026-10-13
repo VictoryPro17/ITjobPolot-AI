@@ -1,120 +1,70 @@
 using JobPilot.Application.Abstractions;
 using JobPilot.Application.Ai;
 using JobPilot.Application.Common;
+using JobPilot.Application.Matching;
 using JobPilot.Domain.Entities;
 using JobPilot.Domain.Enums;
 using JobPilot.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace JobPilot.Infrastructure.Services;
 
 /// <summary>
-/// Einfache, lokale KI-Implementierung fuer Phase 4. Sie nutzt Keywords aus der
-/// Stellenbeschreibung und erzeugt damit konsistente, nachvollziehbare Ergebnisse
-/// ohne externe Abhaengigkeiten.
+/// Stellenanalyse und Anschreiben. Der eigentliche Abgleich laeuft ueber
+/// <see cref="IJobMatchAnalyzer"/>, sodass ein externer KI-Anbieter spaeter
+/// ohne Aenderung an dieser Klasse eingesetzt werden kann.
 /// </summary>
 public class AiService(
     JobPilotDbContext db,
     ICurrentUser currentUser,
-    IOptions<AiOptions> options,
+    IJobMatchAnalyzer matchAnalyzer,
     ILogger<AiService> logger) : IAiService
 {
-    private readonly AiOptions _aiOptions = options.Value;
-
-    private static readonly string[] KnownSkills =
-    [
-        "c#",
-        "dotnet",
-        "asp.net core",
-        "aspnet",
-        "postgresql",
-        "sql",
-        "sqlserver",
-        "mysql",
-        "azure",
-        "aws",
-        "docker",
-        "kubernetes",
-        "react",
-        "typescript",
-        "javascript",
-        "node",
-        "html",
-        "css",
-        "rest",
-        "api",
-        "microservices",
-        "entity framework",
-        "ef core",
-        "pytest",
-        "xunit",
-        "jest",
-        "testing",
-        "ci",
-        "cd",
-        "agile",
-        "scrum",
-        "cloud",
-        "devops",
-        "python",
-        "java",
-        "go",
-        "rust",
-        "tailwind",
-        "clean architecture"
-    ];
+    private const string CoverLetterProvider = "local";
+    private const string CoverLetterModel = "template-v1";
 
     public async Task<AiAnalysisDto> AnalyzeApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
     {
-        EnsureEnabled();
-
         var userId = currentUser.RequireUserId();
 
         var application = await db.JobApplications
             .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId, cancellationToken)
             ?? throw NotFoundException.For("Bewerbung", applicationId);
 
-        var requiredSkills = ExtractSkills(application.JobDescription ?? string.Empty)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var profileUser = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        var matchedSkills = requiredSkills
-            .Where(skill => application.Technologies.Any(t => string.Equals(t, skill, StringComparison.OrdinalIgnoreCase)))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var input = new JobMatchInput(
+            application.JobTitle,
+            application.CompanyName,
+            application.JobDescription,
+            application.Technologies,
+            profileUser?.TargetJobTitle,
+            profileUser?.Skills ?? [],
+            profileUser?.ProfileSummary,
+            profileUser?.ExperienceSummary,
+            profileUser?.EducationSummary,
+            profileUser?.ResumeText);
 
-        var missingSkills = requiredSkills
-            .Except(matchedSkills, StringComparer.OrdinalIgnoreCase)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var matchScore = requiredSkills.Count == 0
-            ? 60
-            : (int)Math.Clamp((double)matchedSkills.Count / requiredSkills.Count * 100, 0, 100);
-
-        var summary = BuildSummary(application, matchedSkills, missingSkills);
+        var result = await matchAnalyzer.AnalyzeAsync(input, cancellationToken);
 
         var analysis = new AiAnalysis
         {
             UserId = userId,
             JobApplicationId = application.Id,
             JobDescription = application.JobDescription ?? string.Empty,
-            MatchScore = matchScore,
-            Summary = summary,
-            RequiredSkills = requiredSkills,
-            MatchedSkills = matchedSkills,
-            MissingSkills = missingSkills,
-            Recommendations = missingSkills.Count == 0
-                ? ["Du deckst die wichtigsten Anforderungen bereits gut ab. Halte die Bewerbung mit konkreten Projektergebnissen und Kennzahlen noch praxistauglich."]
-                : [.. missingSkills.Select(skill => $"Baue in deinem Profil oder in einem Praxisprojekt mehr Erfahrung mit {skill} ein.")],
-            SuggestedLearningTopics = missingSkills.Count == 0
-                ? ["Vertiefe deine Expertise in den Kerntechnologien weiter, damit du im nächsten Schritt noch gezielter überzeugen kannst."]
-                : [.. missingSkills.Select(skill => $"Lerne {skill} gezielt in einem kleinen Praxisprojekt oder anhand eines Projekts mit realem Use Case.")],
-            Provider = _aiOptions.Provider,
-            Model = _aiOptions.Model,
+            MatchScore = result.MatchScore,
+            Summary = result.Summary,
+            RequiredSkills = [.. result.RequiredSkills],
+            MatchedSkills = [.. result.MatchedSkills],
+            MissingSkills = [.. result.MissingSkills],
+            Recommendations = [.. result.Recommendations],
+            SuggestedLearningTopics = [.. result.SuggestedLearningTopics],
+            Provider = result.Provider,
+            Model = result.Model,
             JobApplication = application
         };
 
@@ -124,13 +74,13 @@ public class AiService(
         logger.LogInformation(
             "KI-Analyse fuer Bewerbung {ApplicationId} mit MatchScore {MatchScore} erstellt.",
             application.Id,
-            matchScore);
+            result.MatchScore);
 
         return new AiAnalysisDto(
             analysis.Id,
             analysis.JobApplicationId ?? application.Id,
             analysis.MatchScore,
-            analysis.Summary ?? summary,
+            analysis.Summary ?? result.Summary,
             analysis.RequiredSkills,
             analysis.MatchedSkills,
             analysis.MissingSkills,
@@ -138,7 +88,9 @@ public class AiService(
             analysis.SuggestedLearningTopics,
             analysis.Provider,
             analysis.Model,
-            analysis.CreatedAt);
+            analysis.CreatedAt,
+            result.Factors,
+            result.ProfileHints);
     }
 
     public async Task<GeneratedCoverLetterDto> GenerateCoverLetterAsync(
@@ -146,15 +98,17 @@ public class AiService(
         GenerateCoverLetterRequest request,
         CancellationToken cancellationToken = default)
     {
-        EnsureEnabled();
-
         var userId = currentUser.RequireUserId();
 
         var application = await db.JobApplications
             .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId, cancellationToken)
             ?? throw NotFoundException.For("Bewerbung", applicationId);
 
-        var content = BuildCoverLetter(application, request);
+        var user = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        var content = BuildCoverLetter(application, request, user);
 
         var letter = new GeneratedCoverLetter
         {
@@ -166,8 +120,8 @@ public class AiService(
             JobTitle = application.JobTitle,
             Style = request.Style,
             IsDraft = request.IsDraft,
-            Provider = _aiOptions.Provider,
-            Model = _aiOptions.Model,
+            Provider = CoverLetterProvider,
+            Model = CoverLetterModel,
             JobApplication = application
         };
 
@@ -193,15 +147,7 @@ public class AiService(
             letter.CreatedAt);
     }
 
-    private static string BuildSummary(JobApplication application, IReadOnlyCollection<string> matchedSkills, IReadOnlyCollection<string> missingSkills)
-    {
-        var topMatches = matchedSkills.Count == 0 ? "keine klaren Überlappungen" : string.Join(", ", matchedSkills.Take(3));
-        var missingText = missingSkills.Count == 0 ? "keine signifikanten Lücken" : string.Join(", ", missingSkills.Take(3));
-
-        return $"Für {application.JobTitle} bei {application.CompanyName} passen {topMatches} gut zum Profil. Die wichtigsten Lücken liegen in {missingText}.";
-    }
-
-    private static string BuildCoverLetter(JobApplication application, GenerateCoverLetterRequest request)
+    private static string BuildCoverLetter(JobApplication application, GenerateCoverLetterRequest request, ApplicationUser? user)
     {
         var tone = request.Style switch
         {
@@ -212,9 +158,15 @@ public class AiService(
             _ => "professionell und überzeugend"
         };
 
-        var skills = application.Technologies.Count == 0
+        var skillList = application.Technologies.Count > 0
+            ? application.Technologies.Take(5).ToList()
+            : GetProfileSkillsMentionedInJob(application, user);
+
+        var skills = skillList.Count == 0
             ? "deine technische Kompetenz"
-            : string.Join(", ", application.Technologies.Take(5));
+            : string.Join(", ", skillList);
+
+        var signature = user?.DisplayName ?? "[Ihr Name]";
 
         return $"Sehr geehrte Damen und Herren,\n\n" +
                $"ich bewerbe mich sehr gerne für die Position {application.JobTitle} bei {application.CompanyName}. " +
@@ -224,48 +176,19 @@ public class AiService(
                $"Gerade im Bereich der Bewerbungs- und Projektarbeit sehe ich die Möglichkeit, mit meinem Hintergrund einen echten Mehrwert zu schaffen.\n\n" +
                $"Ich freue mich auf die Gelegenheit, meine Bewerbung persönlich zu besprechen und zu zeigen, wie ich zu Ihrem Team beitragen kann.\n\n" +
                $"Mit freundlichen Grüßen\n" +
-               $"[Ihr Name]";
+               signature;
     }
 
-    private static List<string> ExtractSkills(string text)
+    private static List<string> GetProfileSkillsMentionedInJob(JobApplication application, ApplicationUser? user)
     {
-        if (string.IsNullOrWhiteSpace(text))
+        if (user is null)
         {
             return [];
         }
 
-        var normalized = text.ToLowerInvariant();
-        var matches = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var jobSkills = SkillCatalog.Extract(application.JobDescription);
+        var profileSkills = user.Skills.Select(SkillCatalog.Canonicalize).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var skill in KnownSkills)
-        {
-            if (normalized.Contains(skill, StringComparison.OrdinalIgnoreCase))
-            {
-                matches.Add(skill);
-            }
-        }
-
-        foreach (var token in normalized
-                     .Replace("-", " ")
-                     .Replace("/", " ")
-                     .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (token.Length > 3 && token.Length < 25 && char.IsLetter(token[0]))
-            {
-                matches.Add(token);
-            }
-        }
-
-        return matches
-            .OrderBy(skill => skill)
-            .ToList();
-    }
-
-    private void EnsureEnabled()
-    {
-        if (!_aiOptions.Enabled)
-        {
-            throw new ValidationFailedException("Ai", "Die KI-Funktionen sind derzeit deaktiviert.");
-        }
+        return [.. jobSkills.Where(profileSkills.Contains).Take(5)];
     }
 }

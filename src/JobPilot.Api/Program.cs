@@ -33,6 +33,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<ResumeParsingService>();
 
 // Alle Validatoren der Anwendungsschicht automatisch registrieren.
 builder.Services.AddValidatorsFromAssemblyContaining<AppOptions>(ServiceLifetime.Scoped);

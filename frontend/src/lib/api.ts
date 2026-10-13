@@ -23,12 +23,14 @@ interface ProblemDetails {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { headers, ...rest } = init;
 
+  const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
+
   const response = await fetch(`${BASE_URL}${path}`, {
     ...rest,
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(rest.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(rest.body !== undefined && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...headers,
     },
   });

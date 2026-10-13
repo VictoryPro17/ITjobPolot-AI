@@ -4,6 +4,7 @@ using JobPilot.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace JobPilot.Infrastructure;
 
@@ -34,6 +35,9 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IJobApplicationService, JobApplicationService>();
         services.AddScoped<IAiService, AiService>();
+        services.AddScoped<IResumeProfileExtractor, HeuristicResumeProfileExtractor>();
+        services.AddScoped<IJobMatchAnalyzer, HeuristicJobMatchAnalyzer>();
+        services.TryAddSingleton(TimeProvider.System);
 
         return services;
     }

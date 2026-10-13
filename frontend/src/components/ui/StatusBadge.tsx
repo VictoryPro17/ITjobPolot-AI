@@ -21,4 +21,4 @@ export function StatusBadge({ tone, children }: { tone: Tone; children: string }
       {children}
     </span>
   );
-}
+}

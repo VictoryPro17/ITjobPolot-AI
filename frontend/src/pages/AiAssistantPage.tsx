@@ -1,9 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import {
+  Briefcase,
+  Check,
+  CheckCircle2,
+  CircleDashed,
+  Copy,
+  ListChecks,
+  Sparkles,
+  Target,
+  Wand2,
+  type LucideIcon,
+} from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
+import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
+import { Progress } from "@/components/ui/Progress";
+import { ScoreRing } from "@/components/ui/ScoreRing";
+import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Textarea } from "@/components/ui/Textarea";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   analyzeApplication,
@@ -28,6 +50,7 @@ export function AiAssistantPage() {
   const [coverLetterTitle, setCoverLetterTitle] = useState("Anschreiben für die Position");
   const [style, setStyle] = useState<WritingStyle>("Professional");
   const [isDraft, setIsDraft] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const applications = useQuery({
     queryKey: ["applications", "ai"],
@@ -85,8 +108,8 @@ export function AiAssistantPage() {
 
     try {
       await analysisMutation.mutateAsync(selectedApplicationId);
-    } catch (error) {
-      window.alert(error instanceof ApiError ? error.message : "Die Analyse konnte nicht gestartet werden.");
+    } catch {
+      // Fehler wird inline angezeigt.
     }
   }
 
@@ -97,21 +120,32 @@ export function AiAssistantPage() {
 
     try {
       await coverLetterMutation.mutateAsync();
-    } catch (error) {
-      window.alert(error instanceof ApiError ? error.message : "Das Anschreiben konnte nicht generiert werden.");
+    } catch {
+      // Fehler wird inline angezeigt.
+    }
+  }
+
+  async function handleCopy(content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Zwischenablage nicht verfügbar.
     }
   }
 
   return (
     <>
       <PageHeader
+        icon={Sparkles}
         title="KI-Assistent"
         description="Analysiere Stellenanzeigen und generiere passende Anschreiben direkt für deine Bewerbungen."
       />
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
-          <CardHeader title="Bewerbung auswählen" description="Wähle die Stelle aus, für die du Unterstützung möchtest." />
+          <CardHeader icon={Briefcase} title="Bewerbung auswählen" description="Wähle die Stelle aus, für die du Unterstützung möchtest." />
           <CardBody className="space-y-4">
             {applications.isPending ? (
               <p className="text-sm text-muted-foreground">Bewerbungen werden geladen...</p>
@@ -121,20 +155,15 @@ export function AiAssistantPage() {
               <p className="text-sm text-muted-foreground">Noch keine Bewerbungen vorhanden.</p>
             ) : (
               <>
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium">Ausgewählte Bewerbung</span>
-                  <select
-                    value={selectedApplicationId}
-                    onChange={(event) => setSelectedApplicationId(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  >
+                <Field label="Ausgewählte Bewerbung">
+                  <Select value={selectedApplicationId} onChange={(event) => setSelectedApplicationId(event.target.value)}>
                     {applications.data?.items.map((application) => (
                       <option key={application.id} value={application.id}>
                         {application.companyName} · {application.jobTitle}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
 
                 {selectedApplication ? (
                   <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -142,16 +171,16 @@ export function AiAssistantPage() {
                     <div>{selectedApplication.jobTitle}</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {selectedApplication.technologies.slice(0, 6).map((technology) => (
-                        <span key={technology} className="rounded-full bg-background px-2 py-1 text-xs text-muted-foreground ring-1 ring-border">
+                        <Badge key={technology} tone="neutral">
                           {technology}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </div>
                 ) : null}
 
-                <Button className="w-full" onClick={() => void handleAnalyze()} disabled={analysisMutation.isPending || !selectedApplicationId}>
-                  <Sparkles className="h-4 w-4" />
+                <Button className="w-full" onClick={() => void handleAnalyze()} disabled={!selectedApplicationId} loading={analysisMutation.isPending}>
+                  {analysisMutation.isPending ? null : <Sparkles className="h-4 w-4" />}
                   {analysisMutation.isPending ? "Analysiere..." : "Analyse starten"}
                 </Button>
               </>
@@ -161,71 +190,105 @@ export function AiAssistantPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Ergebnis der Stellenanalyse" description="Wertet die Anforderungen der Stelle gegen dein Profil aus." />
+            <CardHeader icon={Target} title="Ergebnis der Stellenanalyse" description="Wertet die Anforderungen der Stelle gegen dein Profil aus." />
             <CardBody>
               {analysisMutation.isPending ? (
-                <p className="text-sm text-muted-foreground">Die Stelle wird analysiert...</p>
+                <div className="space-y-3">
+                  <Skeleton className="h-28" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : analysisMutation.isError ? (
+                <Alert tone="error">
+                  {analysisMutation.error instanceof ApiError ? analysisMutation.error.message : "Die Analyse konnte nicht gestartet werden."}
+                </Alert>
               ) : analysis ? (
                 <div className="space-y-5">
-                  <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Match-Score</div>
-                      <div className="text-3xl font-semibold">{analysis.matchScore}%</div>
-                    </div>
-                    <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      {analysis.matchScore >= 80 ? "Sehr gut passend" : analysis.matchScore >= 60 ? "Gut passend" : "Verbessern möglich"}
+                  <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:gap-6">
+                    <ScoreRing score={analysis.matchScore} />
+                    <div className="space-y-2">
+                      <Badge tone={analysis.matchScore >= 80 ? "success" : analysis.matchScore >= 60 ? "primary" : "warning"}>
+                        {analysis.matchScore >= 80 ? "Sehr gut passend" : analysis.matchScore >= 60 ? "Gut passend" : "Verbessern möglich"}
+                      </Badge>
+                      <p className="text-sm text-muted-foreground">{analysis.summary}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold">Zusammenfassung</h3>
-                    <p className="text-sm text-muted-foreground">{analysis.summary}</p>
-                  </div>
+                  {analysis.factors.length > 0 ? (
+                    <div className="space-y-3 rounded-lg border border-border bg-card p-3">
+                      <h3 className="text-sm font-semibold">So setzt sich der Score zusammen</h3>
+                      {analysis.factors.map((factor) => (
+                        <div key={factor.key}>
+                          <div className="flex items-center justify-between text-sm">
+                            <div>
+                              <span className="font-medium">{factor.label}</span>
+                              <span className="ml-2 text-xs text-muted-foreground">Gewicht {factor.weight} %</span>
+                            </div>
+                            <span>{factor.score} %</span>
+                          </div>
+                          <Progress
+                            className="mt-1"
+                            value={factor.score}
+                            tone={factor.score >= 80 ? "success" : factor.score >= 60 ? "primary" : "warning"}
+                          />
+                          <p className="mt-1 text-xs text-muted-foreground">{factor.explanation}</p>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground">Faktoren ohne ausreichende Daten werden nicht gewertet.</p>
+                    </div>
+                  ) : null}
+
+                  {analysis.profileHints.length > 0 ? (
+                    <Alert tone="warning" title="So wird die Analyse genauer">
+                      <ul className="list-disc space-y-1 pl-4">
+                        {analysis.profileHints.map((hint) => (
+                          <li key={hint}>{hint}</li>
+                        ))}
+                      </ul>
+                      <Link to="/einstellungen" className="mt-2 inline-block font-medium underline">
+                        Profil vervollständigen
+                      </Link>
+                    </Alert>
+                  ) : null}
 
                   <div className="grid gap-4 md:grid-cols-3">
-                    <SkillBlock title="Erforderlich" items={analysis.requiredSkills} tone="neutral" />
-                    <SkillBlock title="Abgedeckt" items={analysis.matchedSkills} tone="success" />
-                    <SkillBlock title="Fehlend" items={analysis.missingSkills} tone="warning" />
+                    <SkillBlock title="Erforderlich" icon={ListChecks} items={analysis.requiredSkills} tone="neutral" />
+                    <SkillBlock title="Abgedeckt" icon={CheckCircle2} items={analysis.matchedSkills} tone="success" />
+                    <SkillBlock title="Fehlend" icon={CircleDashed} items={analysis.missingSkills} tone="warning" />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <InfoList title="Empfehlungen" items={analysis.recommendations} />
                     <InfoList title="Lerninhalte" items={analysis.suggestedLearningTopics} />
                   </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    {analysis.provider === "local" ? "Regelbasierte Analyse (lokal, ohne externe KI)" : `Analyse mit ${analysis.provider} · ${analysis.model}`}
+                  </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Noch keine Analyse vorhanden. Starte die Auswertung für eine passende Bewerbung.</p>
+                <EmptyState icon={Target} title="Noch keine Analyse" description="Wähle links eine Bewerbung und starte die Auswertung." />
               )}
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Anschreiben generieren" description="Erzeuge auf Basis der Stelle ein passendes Anschreiben." />
+            <CardHeader icon={Wand2} title="Anschreiben generieren" description="Erzeuge auf Basis der Stelle ein passendes Anschreiben." />
             <CardBody className="space-y-4">
-              <label className="block space-y-2">
-                <span className="text-sm font-medium">Titel</span>
-                <input
-                  value={coverLetterTitle}
-                  onChange={(event) => setCoverLetterTitle(event.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                />
-              </label>
+              <Field label="Titel">
+                <Input value={coverLetterTitle} onChange={(event) => setCoverLetterTitle(event.target.value)} />
+              </Field>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium">Stil</span>
-                  <select
-                    value={style}
-                    onChange={(event) => setStyle(event.target.value as WritingStyle)}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  >
+                <Field label="Stil">
+                  <Select value={style} onChange={(event) => setStyle(event.target.value as WritingStyle)}>
                     {Object.entries(writingStyleLabels).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
 
                 <label className="flex items-center gap-2 pt-8 text-sm">
                   <input
@@ -238,31 +301,36 @@ export function AiAssistantPage() {
                 </label>
               </div>
 
-              <Button variant="secondary" className="w-full" onClick={() => void handleGenerateLetter()} disabled={coverLetterMutation.isPending || !selectedApplicationId}>
-                <Wand2 className="h-4 w-4" />
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => void handleGenerateLetter()}
+                disabled={!selectedApplicationId}
+                loading={coverLetterMutation.isPending}
+              >
+                {coverLetterMutation.isPending ? null : <Wand2 className="h-4 w-4" />}
                 {coverLetterMutation.isPending ? "Generiere Anschreiben..." : "Anschreiben erzeugen"}
               </Button>
 
               {coverLetterMutation.isError ? (
-                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                  <AlertTriangle className="mt-0.5 h-4 w-4" />
-                  <span>{coverLetterMutation.error instanceof ApiError ? coverLetterMutation.error.message : "Das Anschreiben konnte nicht erzeugt werden."}</span>
-                </div>
+                <Alert tone="error">
+                  {coverLetterMutation.error instanceof ApiError ? coverLetterMutation.error.message : "Das Anschreiben konnte nicht erzeugt werden."}
+                </Alert>
               ) : null}
 
               {generatedLetter ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Generiertes Anschreiben</h3>
-                    <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
-                      {generatedLetter.isDraft ? "Entwurf" : "Final"}
-                    </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold">Generiertes Anschreiben</h3>
+                      <Badge tone="primary">{generatedLetter.isDraft ? "Entwurf" : "Final"}</Badge>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => void handleCopy(generatedLetter.content)}>
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      {copied ? "Kopiert" : "Kopieren"}
+                    </Button>
                   </div>
-                  <textarea
-                    readOnly
-                    value={generatedLetter.content}
-                    className="min-h-[220px] w-full rounded-lg border border-border bg-background p-3 text-sm leading-6 text-foreground"
-                  />
+                  <Textarea readOnly value={generatedLetter.content} className="min-h-64 leading-6" />
                 </div>
               ) : null}
             </CardBody>
@@ -275,28 +343,26 @@ export function AiAssistantPage() {
 
 interface SkillBlockProps {
   title: string;
+  icon: LucideIcon;
   items: string[];
   tone: "neutral" | "success" | "warning";
 }
 
-function SkillBlock({ title, items, tone }: SkillBlockProps) {
-  const colors = {
-    neutral: "bg-muted/60 text-foreground border-border",
-    success: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300",
-    warning: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-300",
-  };
-
+function SkillBlock({ title, icon: Icon, items, tone }: SkillBlockProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <Icon className="h-4 w-4" />
+        {title} ({items.length})
+      </h3>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Keine Einträge</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
-            <span key={item} className={`rounded-full border px-2 py-1 text-xs ${colors[tone]}`}>
+            <Badge key={item} tone={tone}>
               {item}
-            </span>
+            </Badge>
           ))}
         </div>
       )}

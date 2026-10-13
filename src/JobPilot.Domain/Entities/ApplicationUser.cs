@@ -17,6 +17,21 @@ public class ApplicationUser : IdentityUser<Guid>
 
     public string? Location { get; set; }
 
+    /// <summary>Kurze zusammenfassende Beschreibung des eigenen Profils bzw. Lebenslaufs.</summary>
+    public string? ProfileSummary { get; set; }
+
+    /// <summary>Erfasste berufliche Erfahrung, z.B. als freier Text oder kurze Beschreibung.</summary>
+    public string? ExperienceSummary { get; set; }
+
+    /// <summary>Erfasste Ausbildung oder relevante Studien-/Lerninhalte.</summary>
+    public string? EducationSummary { get; set; }
+
+    /// <summary>Erkannte Skills aus dem Profil bzw. Lebenslauf.</summary>
+    public List<string> Skills { get; set; } = [];
+
+    /// <summary>Optionaler Rohtext des Lebenslaufs, falls dieser später weiter verarbeitet wird.</summary>
+    public string? ResumeText { get; set; }
+
     /// <summary>Bevorzugtes Farbschema der Oberflaeche ("light", "dark", "system").</summary>
     public string ThemePreference { get; set; } = "system";
 

@@ -4,12 +4,12 @@ import { Outlet } from "react-router-dom";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { LogOut, UserCircle } from "lucide-react";
 
 export function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -30,18 +30,14 @@ export function AppLayout() {
 
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
-            <div className="hidden items-center gap-2 border-l border-border pl-3 sm:flex">
-              <UserCircle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              <span className="max-w-32 truncate text-sm font-medium">{user?.displayName || user?.email}</span>
-              <Button variant="ghost" size="icon" onClick={() => void logout()} aria-label="Abmelden">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            <Avatar name={user?.displayName || user?.email || ""} className="hidden sm:flex lg:hidden" />
           </div>
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
+          <div className="mx-auto max-w-7xl animate-fade-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

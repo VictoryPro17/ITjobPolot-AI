@@ -8,6 +8,11 @@ export interface CurrentUser {
   lastName: string | null;
   targetJobTitle: string | null;
   location: string | null;
+  profileSummary: string | null;
+  experienceSummary: string | null;
+  educationSummary: string | null;
+  resumeText: string | null;
+  skills: string[];
   themePreference: string;
   roles: string[];
   createdAt: string;
@@ -60,6 +65,11 @@ export interface UpdateProfileRequest {
   lastName: string | null;
   targetJobTitle: string | null;
   location: string | null;
+  profileSummary: string | null;
+  experienceSummary: string | null;
+  educationSummary: string | null;
+  resumeText: string | null;
+  skills: string[] | null;
   themePreference: string | null;
 }
 
@@ -67,6 +77,35 @@ export function updateProfile(request: UpdateProfileRequest) {
   return apiFetch<CurrentUser>("/auth/profile", {
     method: "PUT",
     body: JSON.stringify(request),
+  });
+}
+
+export interface ResumeProfileSuggestion {
+  resumeText: string;
+  firstName: string | null;
+  lastName: string | null;
+  targetJobTitle: string | null;
+  location: string | null;
+  profileSummary: string | null;
+  experienceSummary: string | null;
+  educationSummary: string | null;
+  skills: string[];
+}
+
+export function uploadResume(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFetch<ResumeProfileSuggestion>("/auth/profile/resume", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function extractResumeProfile(resumeText: string) {
+  return apiFetch<ResumeProfileSuggestion>("/auth/profile/resume/extract", {
+    method: "POST",
+    body: JSON.stringify({ resumeText }),
   });
 }
 

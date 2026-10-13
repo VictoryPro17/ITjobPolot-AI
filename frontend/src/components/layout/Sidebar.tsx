@@ -1,8 +1,10 @@
-import { Plane, X } from "lucide-react";
+import { LogOut, Plane, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { navigationItems } from "@/config/navigation";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -11,6 +13,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const { user, logout } = useAuth();
+
   return (
     <>
       <div
@@ -32,7 +36,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       >
         <div className="flex h-16 items-center justify-between gap-2 px-5">
           <span className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-primary-foreground shadow-sm">
               <Plane className="h-4 w-4" />
             </span>
             JobPilot AI
@@ -53,7 +57,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary/10 text-primary"
+                    ? "relative bg-primary/10 text-primary before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-full before:bg-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )
               }
@@ -64,9 +68,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <p className="border-t border-border px-5 py-4 text-xs text-muted-foreground">
-          Version 0.1.0 – Entwicklungsstand
-        </p>
+        <div className="flex items-center gap-3 border-t border-border p-3">
+          <Avatar name={user?.displayName || user?.email || ""} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{user?.displayName || user?.email}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => void logout()} aria-label="Abmelden">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </aside>
     </>
   );

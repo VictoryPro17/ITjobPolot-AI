@@ -41,8 +41,10 @@ ein Kanban-Board und optionale KI-Unterstützung bei Stellenanalyse und Anschrei
 * **Cookie-Authentifizierung** statt JWT: Das Frontend ist eine First-Party-SPA. Ein `HttpOnly`-Cookie
   ist dort sicherer, weil es für JavaScript nicht lesbar ist. Unauthentifizierte Anfragen erhalten
   401/403 statt eines Redirects auf eine Login-Seite.
-* **KI ist optional**: Alle KI-Funktionen hängen an `Ai:Enabled` (Standard `false`). Das MVP läuft
-  vollständig ohne externen KI-Anbieter.
+* **KI ist optional**: `Ai:Enabled` (Standard `false`) schaltet externe KI-Anbieter frei. Match-Analyse
+  und Anschreiben laufen ohne KI regelbasiert. Das MVP läuft vollständig ohne externen KI-Anbieter.
+* **Lebensläufe** können als PDF, DOCX, TXT oder MD hochgeladen werden. Der Upload liefert einen
+  Profilvorschlag, der erst nach Prüfung über „Profil speichern“ übernommen wird.
 
 ## Voraussetzungen
 
@@ -106,7 +108,7 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 | `App:CorsOrigins` | `App__CorsOrigins__0` | `http://localhost:5173` | Erlaubte Frontend-Origins |
 | `Storage:UploadRoot` | `Storage__UploadRoot` | `uploads` | Ablage für Benutzerdokumente |
 | `Storage:MaxFileSizeBytes` | `Storage__MaxFileSizeBytes` | `10485760` | Maximale Dateigröße (10 MB) |
-| `Ai:Enabled` | `Ai__Enabled` | `false` | Schaltet alle KI-Funktionen frei |
+| `Ai:Enabled` | `Ai__Enabled` | `false` | Schaltet externe KI-Anbieter frei. Match-Analyse und Anschreiben laufen ohne KI regelbasiert. |
 | `Ai:Provider` | `Ai__Provider` | `OpenAI` | KI-Anbieter |
 | `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |
 | `Ai:DailyRequestLimitPerUser` | `Ai__DailyRequestLimitPerUser` | `25` | Kostenbremse pro Benutzer und Tag |

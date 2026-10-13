@@ -85,6 +85,24 @@ public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequ
         RuleFor(x => x.Location)
             .MaximumLength(150).WithMessage("Der Ort darf höchstens 150 Zeichen lang sein.");
 
+        RuleFor(x => x.ProfileSummary)
+            .MaximumLength(2000).WithMessage("Die Profilzusammenfassung darf höchstens 2000 Zeichen lang sein.");
+
+        RuleFor(x => x.ExperienceSummary)
+            .MaximumLength(2000).WithMessage("Die Berufserfahrung darf höchstens 2000 Zeichen lang sein.");
+
+        RuleFor(x => x.EducationSummary)
+            .MaximumLength(2000).WithMessage("Die Ausbildung darf höchstens 2000 Zeichen lang sein.");
+
+        RuleFor(x => x.ResumeText)
+            .MaximumLength(100_000).WithMessage("Der Lebenslauf-Text darf höchstens 100.000 Zeichen lang sein.");
+
+        RuleFor(x => x.Skills)
+            .Must(skills => skills is null || skills.Count <= 100).WithMessage("Es sind höchstens 100 Skills erlaubt.");
+
+        RuleForEach(x => x.Skills)
+            .MaximumLength(100).WithMessage("Ein Skill darf höchstens 100 Zeichen lang sein.");
+
         RuleFor(x => x.ThemePreference)
             .Must(theme => theme is null || AllowedThemes.Contains(theme))
             .WithMessage("Erlaubte Werte sind light, dark oder system.");
