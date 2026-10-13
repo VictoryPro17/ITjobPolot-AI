@@ -1,0 +1,11 @@
+﻿<Project>
+
+  <!-- Gilt nur fuer die JobPilot-Web-Projekte unterhalb von /src.
+       Die bestehende MAUI-App im Repo-Root bleibt davon bewusst unberuehrt. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

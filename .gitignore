@@ -361,3 +361,30 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# ---------------------------------------------------------------------------
+# JobPilot AI
+# ---------------------------------------------------------------------------
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Lokale Umgebungsvariablen (koennen Secrets enthalten)
+.env
+.env.*
+!.env.example
+
+# Hochgeladene Benutzerdokumente
+uploads/
+src/JobPilot.Api/uploads/
+
+# Logs
+logs/
+*.log
+
+# Lokale Datenbankdaten
+postgres-data/

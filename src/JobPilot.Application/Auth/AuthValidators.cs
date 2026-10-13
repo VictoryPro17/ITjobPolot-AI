@@ -1,0 +1,92 @@
+﻿using FluentValidation;
+
+namespace JobPilot.Application.Auth;
+
+/// <summary>
+/// Passwortregeln spiegeln die Identity-Konfiguration wider, damit Benutzer die
+/// Anforderungen bereits vor dem Serveraufruf nachvollziehen koennen.
+/// </summary>
+public static class PasswordRules
+{
+    public const int MinimumLength = 10;
+
+    public static IRuleBuilderOptions<T, string> Password<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().WithMessage("Bitte geben Sie ein Passwort ein.")
+            .MinimumLength(MinimumLength)
+            .WithMessage($"Das Passwort muss mindestens {MinimumLength} Zeichen lang sein.")
+            .MaximumLength(128).WithMessage("Das Passwort darf höchstens 128 Zeichen lang sein.")
+            .Matches("[A-Z]").WithMessage("Das Passwort muss mindestens einen Großbuchstaben enthalten.")
+            .Matches("[a-z]").WithMessage("Das Passwort muss mindestens einen Kleinbuchstaben enthalten.")
+            .Matches("[0-9]").WithMessage("Das Passwort muss mindestens eine Ziffer enthalten.");
+}
+
+public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+{
+    public RegisterRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Bitte geben Sie eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.")
+            .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
+
+        RuleFor(x => x.Password).Password();
+
+        RuleFor(x => x.FirstName)
+            .MaximumLength(100).WithMessage("Der Vorname darf höchstens 100 Zeichen lang sein.");
+
+        RuleFor(x => x.LastName)
+            .MaximumLength(100).WithMessage("Der Nachname darf höchstens 100 Zeichen lang sein.");
+    }
+}
+
+public class LoginRequestValidator : AbstractValidator<LoginRequest>
+{
+    public LoginRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Bitte geben Sie eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Bitte geben Sie Ihr Passwort ein.");
+    }
+}
+
+public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
+{
+    public ChangePasswordRequestValidator()
+    {
+        RuleFor(x => x.CurrentPassword)
+            .NotEmpty().WithMessage("Bitte geben Sie Ihr aktuelles Passwort ein.");
+
+        RuleFor(x => x.NewPassword).Password();
+
+        RuleFor(x => x.NewPassword)
+            .NotEqual(x => x.CurrentPassword)
+            .WithMessage("Das neue Passwort muss sich vom bisherigen unterscheiden.");
+    }
+}
+
+public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequest>
+{
+    private static readonly string[] AllowedThemes = ["light", "dark", "system"];
+
+    public UpdateProfileRequestValidator()
+    {
+        RuleFor(x => x.FirstName)
+            .MaximumLength(100).WithMessage("Der Vorname darf höchstens 100 Zeichen lang sein.");
+
+        RuleFor(x => x.LastName)
+            .MaximumLength(100).WithMessage("Der Nachname darf höchstens 100 Zeichen lang sein.");
+
+        RuleFor(x => x.TargetJobTitle)
+            .MaximumLength(150).WithMessage("Die Wunschposition darf höchstens 150 Zeichen lang sein.");
+
+        RuleFor(x => x.Location)
+            .MaximumLength(150).WithMessage("Der Ort darf höchstens 150 Zeichen lang sein.");
+
+        RuleFor(x => x.ThemePreference)
+            .Must(theme => theme is null || AllowedThemes.Contains(theme))
+            .WithMessage("Erlaubte Werte sind light, dark oder system.");
+    }
+}
