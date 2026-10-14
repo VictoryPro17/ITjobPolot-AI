@@ -55,7 +55,7 @@ export function AiAssistantPage() {
 
   const applications = useQuery({
     queryKey: ["applications", "ai"],
-    queryFn: () => getApplications({ search: "", status: "", page: 1 }),
+    queryFn: () => getApplications({ search: "", status: "", page: 1, pageSize: 100 }),
   });
 
   const aiStatus = useQuery({ queryKey: ["ai", "status"], queryFn: getAiStatus });

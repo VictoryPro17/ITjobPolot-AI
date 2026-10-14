@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/utils";
 
 function getInitials(name: string) {
@@ -11,13 +13,36 @@ function getInitials(name: string) {
   return "?";
 }
 
-export function Avatar({ name, className }: { name: string; className?: string }) {
+interface AvatarProps {
+  name: string;
+  className?: string;
+  src?: string;
+  size?: "sm" | "lg";
+}
+
+export function Avatar({ name, className, src, size = "sm" }: AvatarProps) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  const showImage = Boolean(src) && !failed;
+
   return (
     <span
       aria-hidden="true"
-      className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary", className)}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary",
+        size === "lg" ? "h-20 w-20 text-2xl" : "h-8 w-8 text-xs",
+        className,
+      )}
     >
-      {getInitials(name)}
+      {showImage ? (
+        <img src={src} alt="" className="h-full w-full rounded-full object-cover" onError={() => setFailed(true)} />
+      ) : (
+        getInitials(name)
+      )}
     </span>
   );
 }

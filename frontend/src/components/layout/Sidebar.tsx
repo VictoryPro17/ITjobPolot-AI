@@ -5,6 +5,7 @@ import { navigationItems } from "@/config/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { getAvatarUrl } from "@/features/auth/api";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -69,7 +70,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="flex items-center gap-3 border-t border-border p-3">
-          <Avatar name={user?.displayName || user?.email || ""} />
+          <Avatar name={user?.displayName || user?.email || ""} src={getAvatarUrl(user)} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user?.displayName || user?.email}</p>
             <p className="truncate text-xs text-muted-foreground">{user?.email}</p>

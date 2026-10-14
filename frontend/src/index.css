@@ -20,6 +20,18 @@
   --warning: oklch(0.72 0.16 70);
   --ring: oklch(0.55 0.21 264);
   --radius: 0.75rem;
+  --status-draft: #898781;
+  --status-applied: #2a78d6;
+  --status-interview: #4a3aa7;
+  --status-offer: #eda100;
+  --status-accepted: #1baf7a;
+  --status-rejected: #b02a2a;
+  --funnel-1: #86b6ef;
+  --funnel-2: #5598e7;
+  --funnel-3: #2a78d6;
+  --funnel-4: #1c5cab;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #898781;
   color-scheme: light;
 }
 
@@ -40,6 +52,18 @@
   --success: oklch(0.72 0.15 150);
   --warning: oklch(0.8 0.15 70);
   --ring: oklch(0.68 0.17 264);
+  --status-draft: #898781;
+  --status-applied: #256abf;
+  --status-interview: #9085e9;
+  --status-offer: #c98500;
+  --status-accepted: #199e70;
+  --status-rejected: #e66767;
+  --funnel-1: #184f95;
+  --funnel-2: #256abf;
+  --funnel-3: #3987e5;
+  --funnel-4: #6da7ec;
+  --chart-grid: #2c2c2a;
+  --chart-axis: #898781;
   color-scheme: dark;
 }
 
@@ -60,6 +84,12 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-ring: var(--ring);
+  --color-status-draft: var(--status-draft);
+  --color-status-applied: var(--status-applied);
+  --color-status-interview: var(--status-interview);
+  --color-status-offer: var(--status-offer);
+  --color-status-accepted: var(--status-accepted);
+  --color-status-rejected: var(--status-rejected);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.25rem);
 }

@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, BASE_URL } from "@/lib/api";
 
 export interface CurrentUser {
   id: string;
@@ -16,6 +16,7 @@ export interface CurrentUser {
   themePreference: string;
   roles: string[];
   createdAt: string;
+  avatarVersion?: number | null;
 }
 
 export interface LoginRequest {
@@ -119,4 +120,22 @@ export function changePassword(request: ChangePasswordRequest) {
     method: "POST",
     body: JSON.stringify(request),
   });
+}
+
+export function uploadAvatar(blob: Blob) {
+  const formData = new FormData();
+  formData.append("file", blob, "avatar.jpg");
+
+  return apiFetch<CurrentUser>("/auth/profile/avatar", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function deleteAvatar() {
+  return apiFetch<CurrentUser>("/auth/profile/avatar", { method: "DELETE" });
+}
+
+export function getAvatarUrl(user: CurrentUser | null | undefined): string | undefined {
+  return user?.avatarVersion != null ? `${BASE_URL}/auth/profile/avatar?v=${user.avatarVersion}` : undefined;
 }

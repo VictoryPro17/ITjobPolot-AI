@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, Circle, Download, Gauge, KeyRound, Moon, Palette, Settings, ShieldAlert, Sun, Trash2, UserRound } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { Camera, CheckCircle2, Circle, Download, Gauge, KeyRound, Moon, Palette, Settings, ShieldAlert, Sun, Trash2, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Field } from "@/components/ui/Field";
@@ -18,12 +19,16 @@ import { useTheme } from "@/components/theme/useTheme";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   changePassword,
+  deleteAvatar,
   extractResumeProfile,
+  getAvatarUrl,
   updateProfile,
+  uploadAvatar,
   uploadResume,
   type ResumeProfileSuggestion,
 } from "@/features/auth/api";
 import { ApiError, apiDownload, apiFetch, saveBlob } from "@/lib/api";
+import { cropToSquareJpeg } from "@/lib/image";
 
 function parseSkills(value: string): string[] {
   return value
@@ -130,6 +135,12 @@ export function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isAvatarDeleting, setIsAvatarDeleting] = useState(false);
+  const [avatarRemoveOpen, setAvatarRemoveOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+
   const deleteAccountMutation = useMutation({
     mutationFn: () => apiFetch<void>("/auth/account", { method: "DELETE", body: JSON.stringify({ password: deletePassword }) }),
     onSuccess: () => {
@@ -138,6 +149,45 @@ export function SettingsPage() {
     },
     onError: (error) => setDeleteError(error instanceof ApiError ? error.message : "Das Konto konnte nicht gelöscht werden."),
   });
+
+  async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    setAvatarError("");
+    if (file.size > 10 * 1024 * 1024) {
+      setAvatarError("Die Datei ist zu groß.");
+      input.value = "";
+      return;
+    }
+
+    setIsAvatarUploading(true);
+    try {
+      const blob = await cropToSquareJpeg(file);
+      const updated = await uploadAvatar(blob);
+      queryClient.setQueryData(["auth", "me"], updated);
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Das Profilbild konnte nicht hochgeladen werden.");
+    } finally {
+      setIsAvatarUploading(false);
+      input.value = "";
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setAvatarError("");
+    setIsAvatarDeleting(true);
+    try {
+      const updated = await deleteAvatar();
+      queryClient.setQueryData(["auth", "me"], updated);
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Das Profilbild konnte nicht entfernt werden.");
+    } finally {
+      setIsAvatarDeleting(false);
+      setAvatarRemoveOpen(false);
+    }
+  }
 
   async function handleExport() {
     setExportError("");
@@ -158,6 +208,22 @@ export function SettingsPage() {
     setDeleteError("");
   }
 
+  // Nur die gespeicherten Profildaten bestimmen den Formularstand. Ein neues Profilbild
+  // aktualisiert zwar den Benutzer, darf aber ungespeicherte Eingaben nicht verwerfen.
+  const savedProfileKey = user
+    ? JSON.stringify([
+        user.firstName,
+        user.lastName,
+        user.targetJobTitle,
+        user.location,
+        user.profileSummary,
+        user.experienceSummary,
+        user.educationSummary,
+        user.resumeText,
+        user.skills,
+      ])
+    : "";
+
   useEffect(() => {
     if (user) {
       setProfile({
@@ -172,7 +238,8 @@ export function SettingsPage() {
         skills: user.skills.join(", "),
       });
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bewusst nur bei geänderten Profildaten
+  }, [savedProfileKey]);
 
   const profileMutation = useMutation({
     mutationFn: () =>
@@ -324,6 +391,48 @@ export function SettingsPage() {
             <form className="space-y-8" onSubmit={submitProfile}>
               {profileError ? <Alert tone="error">{profileError}</Alert> : null}
               {profileMessage ? <Alert tone="success">{profileMessage}</Alert> : null}
+
+              <div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Avatar name={user?.displayName || user?.email || ""} src={getAvatarUrl(user)} size="lg" />
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">Profilbild</p>
+                      <p className="text-xs text-muted-foreground">PNG oder JPG, wird quadratisch auf 256 × 256 px zugeschnitten.</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                        onChange={(event) => void handleAvatarChange(event)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        loading={isAvatarUploading}
+                        onClick={() => avatarInputRef.current?.click()}
+                      >
+                        <Camera className="h-4 w-4" />
+                        Bild hochladen
+                      </Button>
+                      {user?.avatarVersion != null ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setAvatarRemoveOpen(true)}>
+                          <Trash2 className="h-4 w-4" />
+                          Entfernen
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+                {avatarError ? (
+                  <Alert tone="error" className="mt-3">
+                    {avatarError}
+                  </Alert>
+                ) : null}
+              </div>
 
               <section className="space-y-4">
                 <div>
@@ -595,6 +704,17 @@ export function SettingsPage() {
           </Field>
         </div>
       </ConfirmDialog>
+
+      <ConfirmDialog
+        open={avatarRemoveOpen}
+        tone="destructive"
+        title="Profilbild entfernen?"
+        description="Das Bild wird gelöscht."
+        confirmLabel="Entfernen"
+        loading={isAvatarDeleting}
+        onConfirm={() => void handleAvatarRemove()}
+        onCancel={() => setAvatarRemoveOpen(false)}
+      />
     </>
   );
 }

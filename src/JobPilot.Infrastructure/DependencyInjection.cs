@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<IAvatarService, AvatarService>();
 
         return services;
     }

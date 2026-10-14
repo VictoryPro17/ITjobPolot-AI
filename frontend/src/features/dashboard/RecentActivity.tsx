@@ -3,13 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { getApplications, getStatusLabel, type ApplicationStatus } from "@/features/applications/api";
+import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
+import { getApplications } from "@/features/applications/api";
 import { Button } from "@/components/ui/Button";
-
-const toneByStatus: Record<ApplicationStatus, "success" | "warning" | "danger" | "neutral"> = {
-  Draft: "neutral", Applied: "warning", Interview: "warning", Offer: "success", Accepted: "success", Rejected: "danger",
-};
 
 export function RecentActivity() {
   const recent = useQuery({ queryKey: ["applications", "", "", 1], queryFn: () => getApplications({ search: "", status: "", page: 1 }) });
@@ -23,7 +19,7 @@ export function RecentActivity() {
             {recent.data.items.slice(0, 5).map((application) => (
               <li key={application.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <div className="min-w-0"><Link className="block truncate font-medium hover:text-primary" to={`/bewerbungen/${application.id}`}>{application.jobTitle}</Link><span className="text-xs text-muted-foreground">{application.companyName}</span></div>
-                <StatusBadge tone={toneByStatus[application.status]}>{getStatusLabel(application.status)}</StatusBadge>
+                <ApplicationStatusBadge status={application.status} />
               </li>
             ))}
           </ul>

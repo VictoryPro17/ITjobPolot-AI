@@ -32,6 +32,12 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>Optionaler Rohtext des Lebenslaufs, falls dieser später weiter verarbeitet wird.</summary>
     public string? ResumeText { get; set; }
 
+    /// <summary>Speicherpfad des Profilbilds (relativ zur Upload-Wurzel), null ohne Bild.</summary>
+    public string? AvatarStoragePath { get; set; }
+
+    /// <summary>Zeitpunkt des letzten Profilbild-Wechsels; dient als Cache-Version fuer die Oberflaeche.</summary>
+    public DateTimeOffset? AvatarUpdatedAt { get; set; }
+
     /// <summary>Bevorzugtes Farbschema der Oberflaeche ("light", "dark", "system").</summary>
     public string ThemePreference { get; set; } = "system";
 

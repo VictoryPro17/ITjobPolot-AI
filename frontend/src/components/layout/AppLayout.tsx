@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { getAvatarUrl } from "@/features/auth/api";
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export function AppLayout() {
 
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
-            <Avatar name={user?.displayName || user?.email || ""} className="hidden sm:flex lg:hidden" />
+            <Avatar name={user?.displayName || user?.email || ""} src={getAvatarUrl(user)} className="hidden sm:flex lg:hidden" />
           </div>
         </header>
 

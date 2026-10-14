@@ -47,4 +47,5 @@ public record CurrentUserResponse(
     IReadOnlyList<string> Skills,
     string ThemePreference,
     IReadOnlyList<string> Roles,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    long? AvatarVersion = null);

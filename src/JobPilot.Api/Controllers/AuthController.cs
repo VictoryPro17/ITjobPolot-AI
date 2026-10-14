@@ -9,6 +9,7 @@ using JobPilot.Application.Common;
 using JobPilot.Application.Matching;
 using JobPilot.Application.Profile;
 using JobPilot.Domain.Constants;
+using JobPilot.Infrastructure.Services;
 using JobPilot.Domain.Entities;
 using JobPilot.Domain.Enums;
 
@@ -33,6 +34,7 @@ public class AuthController(
     IResumeProfileExtractor resumeProfileExtractor,
     IFileStorage fileStorage,
     IAccountService accountService,
+    IAvatarService avatarService,
     IOptions<StorageOptions> storageOptions,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -259,6 +261,49 @@ public class AuthController(
         return NoContent();
     }
 
+    /// <summary>Laedt ein neues Profilbild hoch (PNG/JPG, max. 2 MB) und ersetzt das bisherige.</summary>
+    [HttpPost("profile/avatar")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<CurrentUserResponse>> UploadAvatar(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file.Length > AvatarService.MaxSizeInBytes)
+        {
+            throw new ValidationFailedException("file", "Das Profilbild darf höchstens 2 MB groß sein.");
+        }
+
+        using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer, cancellationToken);
+        await avatarService.UploadAsync(buffer.ToArray(), file.FileName, cancellationToken);
+
+        return Ok(await BuildResponseAsync(await GetCurrentUserAsync()));
+    }
+
+    /// <summary>Liefert das eigene Profilbild.</summary>
+    [HttpGet("profile/avatar")]
+    [Authorize]
+    public async Task<IActionResult> GetAvatar(CancellationToken cancellationToken)
+    {
+        var avatar = await avatarService.OpenAsync(cancellationToken);
+        if (avatar is null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers.XContentTypeOptions = "nosniff";
+        Response.Headers.CacheControl = "private, max-age=86400";
+        return File(avatar.Value.Content, avatar.Value.ContentType);
+    }
+
+    /// <summary>Entfernt das eigene Profilbild.</summary>
+    [HttpDelete("profile/avatar")]
+    [Authorize]
+    public async Task<ActionResult<CurrentUserResponse>> DeleteAvatar(CancellationToken cancellationToken)
+    {
+        await avatarService.DeleteAsync(cancellationToken);
+        return Ok(await BuildResponseAsync(await GetCurrentUserAsync()));
+    }
+
     /// <summary>Exportiert alle eigenen Daten als JSON-Datei (ohne hochgeladene Dateien).</summary>
     [HttpGet("export")]
     [Authorize]
@@ -319,7 +364,8 @@ public class AuthController(
             [.. user.Skills.Where(skill => !string.IsNullOrWhiteSpace(skill)).Select(skill => skill.Trim())],
             user.ThemePreference,
             [.. roles],
-            user.CreatedAt);
+            user.CreatedAt,
+            user.AvatarStoragePath is null ? null : user.AvatarUpdatedAt?.ToUnixTimeMilliseconds());
     }
 
     private static string? Normalize(string? value) =>

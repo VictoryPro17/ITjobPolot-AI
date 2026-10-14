@@ -1,54 +1,47 @@
-﻿import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
-import { BarChart3, CalendarDays, Filter, PieChart as PieChartIcon, Target, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  BarChart3,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Filter,
+  MessagesSquare,
+  PieChart as PieChartIcon,
+  Send,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ChartTable } from "@/components/charts/ChartTable";
+import { ChartTooltip } from "@/components/charts/ChartTooltip";
+import { Alert } from "@/components/ui/Alert";
+import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Progress } from "@/components/ui/Progress";
-import { Spinner } from "@/components/ui/Spinner";
-import { getStatistics, type ApplicationStatus, type MonthlyStats } from "@/features/applications/api";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { StatTile } from "@/components/ui/StatTile";
+import { getStatistics, type ApplicationStatus } from "@/features/applications/api";
+import { applicationStatusOrder, statusConfig } from "@/features/applications/status";
 
-const monthNames = ["Jan", "Feb", "Mrz", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-const funnelColors = ["#6366f1", "#0ea5e9", "#f59e0b", "#10b981"];
+const axisTick = { fill: "var(--chart-axis)", fontSize: 12 };
 
-const statusChartLabels: Record<ApplicationStatus, string> = {
-  Draft: "Entwurf",
-  Applied: "Beworben",
-  Interview: "Gespräch",
-  Offer: "Angebot",
-  Accepted: "Zusage",
-  Rejected: "Absage",
-};
-
-const statusColors: Record<ApplicationStatus, string> = {
-  Draft: "#94a3b8",
-  Applied: "#6366f1",
-  Interview: "#0ea5e9",
-  Offer: "#f59e0b",
-  Accepted: "#10b981",
-  Rejected: "#ef4444",
-};
-
-const tooltipStyle = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  borderRadius: "0.75rem",
-  color: "var(--card-foreground)",
-};
-
-function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-        {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardBody>
-    </Card>
-  );
+function formatNumber(value: number) {
+  return value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
+
+function formatDate(isoDate: string) {
+  const [year, month, day] = isoDate.split("T")[0].split("-");
+  return { short: `${day}.${month}.`, full: `${day}.${month}.${year}` };
+}
+
+function formatMonth(year: number, month: number) {
+  const name = new Date(year, month - 1, 1).toLocaleDateString("de-DE", { month: "short" }).replace(".", "");
+  return `${name} '${String(year).slice(2)}`;
+}
+
+const header = <PageHeader icon={BarChart3} title="Statistiken" description="Auswertungen zu Bewerbungsquoten und Verläufen." />;
 
 export function StatisticsPage() {
   const statistics = useQuery({ queryKey: ["statistics"], queryFn: getStatistics });
@@ -56,12 +49,18 @@ export function StatisticsPage() {
   if (statistics.isPending) {
     return (
       <>
-        <PageHeader icon={BarChart3} title="Statistiken" description="Auswertungen zu Bewerbungsquoten und Verlaeufen." />
-        <Card>
-          <CardBody>
-            <Spinner label="Statistiken werden geladen..." />
-          </CardBody>
-        </Card>
+        {header}
+        <div className="grid gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((index) => (
+              <Skeleton key={index} className="h-28" />
+            ))}
+          </div>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Skeleton className="h-72" />
+            <Skeleton className="h-72" />
+          </div>
+        </div>
       </>
     );
   }
@@ -69,196 +68,224 @@ export function StatisticsPage() {
   if (statistics.isError || !statistics.data) {
     return (
       <>
-        <PageHeader icon={BarChart3} title="Statistiken" description="Auswertungen zu Bewerbungsquoten und Verlaeufen." />
-        <Card>
-          <CardBody>
-            <p className="text-sm text-destructive">Die Statistiken konnten nicht geladen werden.</p>
-          </CardBody>
-        </Card>
+        {header}
+        <Alert tone="error">Die Statistiken konnten nicht geladen werden.</Alert>
       </>
     );
   }
 
   const data = statistics.data;
 
-  const monthly = data.monthlyData.map((month: MonthlyStats) => ({
-    name: `${monthNames[month.month - 1]} ${String(month.year).slice(2)}`,
+  if (data.totalApplications === 0) {
+    return (
+      <>
+        {header}
+        <EmptyState
+          icon={BarChart3}
+          title="Noch keine Auswertung möglich"
+          description="Sobald Bewerbungen mit einem Bewerbungsdatum erfasst sind, erscheinen hier Kennzahlen und Diagramme."
+        />
+      </>
+    );
+  }
+
+  const funnel = [
+    { label: "Beworben", value: data.totalApplications },
+    { label: "Gespräch", value: data.totalInterviews },
+    { label: "Angebot", value: data.totalOffers },
+    { label: "Zusage", value: data.totalAccepted },
+  ];
+
+  const weekly = data.weeklyActivity.map((week) => {
+    const date = formatDate(week.weekStart);
+    return { name: date.short, full: date.full, Bewerbungen: week.applied };
+  });
+
+  const monthly = data.monthlyData.map((month) => ({
+    name: formatMonth(month.year, month.month),
     Bewerbungen: month.applied,
-    Gespraeche: month.interviews,
+    Gespräche: month.interviews,
     Angebote: month.offers,
     Absagen: month.rejected,
   }));
 
-  const funnel = [
-    { name: "Beworben", value: data.totalApplications - data.totalInterviews },
-    { name: "Gespraech", value: data.totalInterviews - data.totalOffers },
-    { name: "Angebot", value: data.totalOffers - data.totalAccepted },
-    { name: "Zusage", value: data.totalAccepted },
-  ].filter((slice) => slice.value > 0);
-
-  const percent = (value: number) => `${value.toFixed(1)} %`;
-
-  const weekly = data.weeklyActivity.map((week) => {
-    const [, month, day] = week.weekStart.split("-");
-    return { name: `${day}.${month}.`, Bewerbungen: week.applied };
+  const countByStatus = new Map<ApplicationStatus, number>(data.statusDistribution.map((entry) => [entry.status, entry.count]));
+  const statusTotal = applicationStatusOrder.reduce((sum, status) => sum + (countByStatus.get(status) ?? 0), 0);
+  const statusRows = applicationStatusOrder.map((status) => {
+    const count = countByStatus.get(status) ?? 0;
+    return { status, count, share: statusTotal > 0 ? (count / statusTotal) * 100 : 0 };
   });
-
-  const statusData = data.statusDistribution
-    .filter((entry) => entry.count > 0)
-    .map((entry) => ({ status: entry.status, name: statusChartLabels[entry.status], value: entry.count }));
-
-  const progressRows = [
-    { label: "Beworben", value: data.totalApplications, tone: "primary" as const },
-    { label: "Gespräch", value: data.totalInterviews, tone: "primary" as const },
-    { label: "Angebot", value: data.totalOffers, tone: "primary" as const },
-    { label: "Zusage", value: data.totalAccepted, tone: "success" as const },
-  ];
 
   return (
     <>
-      <PageHeader icon={BarChart3} title="Statistiken" description="Auswertungen zu Bewerbungsquoten und Verlaeufen." />
+      {header}
 
-      {data.totalApplications === 0 ? (
-        <EmptyState
-          title="Noch keine Auswertung moeglich"
-          description="Sobald Bewerbungen mit einem Bewerbungsdatum erfasst sind, erscheinen hier Kennzahlen und Diagramme."
-        />
-      ) : (
-        <div className="grid gap-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label="Bewerbungen gesamt" value={String(data.totalApplications)} hint="mit Bewerbungsdatum" />
-            <Metric label="Einladungsquote" value={percent(data.interviewRate)} hint={`${data.totalInterviews} Gespraeche`} />
-            <Metric label="Angebotsquote" value={percent(data.offerRate)} hint={`${data.totalOffers} Angebote`} />
-            <Metric label="Zusagequote" value={percent(data.acceptanceRate)} hint={`${data.totalAccepted} Zusagen`} />
-          </div>
+      <div className="grid gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatTile
+            icon={Send}
+            label="Bewerbungen"
+            value={String(data.totalApplications)}
+            hint={`+${data.applicationsLast30Days} in den letzten 30 Tagen`}
+          />
+          <StatTile
+            icon={MessagesSquare}
+            label="Gesprächsquote"
+            value={`${formatNumber(data.interviewRate)} %`}
+            hint={`${data.totalInterviews} Gespräche`}
+          />
+          <StatTile
+            icon={CheckCircle2}
+            label="Zusagequote"
+            value={`${formatNumber(data.acceptanceRate)} %`}
+            hint={`${data.totalAccepted} Zusagen · ${data.totalOffers} Angebote`}
+          />
+          <StatTile
+            icon={Clock}
+            label="Ø Antwortzeit"
+            value={data.averageDaysToResponse == null ? "–" : `${formatNumber(data.averageDaysToResponse)} Tage`}
+            hint="bis zur ersten Rückmeldung"
+          />
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Metric label="Letzte 30 Tage" value={String(data.applicationsLast30Days)} hint="Bewerbungen" />
-            <Metric
-              label="Ø Antwortzeit"
-              value={data.averageDaysToResponse == null ? "–" : `${data.averageDaysToResponse.toLocaleString("de-DE", { maximumFractionDigits: 1 })} Tage`}
-            />
-            <Metric
-              label="Ø Match-Score"
-              value={data.averageMatchScore == null ? "–" : `${data.averageMatchScore.toLocaleString("de-DE", { maximumFractionDigits: 1 })} %`}
-            />
-          </div>
+        {data.averageMatchScore != null ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Target className="h-4 w-4" aria-hidden="true" />
+            Ø Match-Score deiner Analysen: {formatNumber(data.averageMatchScore)} %
+          </p>
+        ) : null}
 
+        <div className="grid gap-6 xl:grid-cols-2">
           <Card>
-            <CardHeader icon={TrendingUp} title="Monatsverlauf" description="Bewerbungen und Fortschritt je Monat." />
+            <CardHeader icon={Filter} title="Bewerbungstrichter" description="Wie viele Bewerbungen die jeweilige Stufe erreicht haben." />
             <CardBody>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthly}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--muted-foreground)" fontSize={12} allowDecimals={false} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "0.75rem",
-                        color: "var(--card-foreground)",
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="Bewerbungen" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Gespraeche" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Angebote" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Absagen" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="space-y-3">
+                {funnel.map((stage, index) => {
+                  const previous = index > 0 ? funnel[index - 1] : null;
+                  const conversion = previous && previous.value > 0 ? (stage.value / previous.value) * 100 : null;
+                  const width = Math.max((stage.value / data.totalApplications) * 100, stage.value > 0 ? 2 : 0);
+
+                  return (
+                    <div key={stage.label} className="grid grid-cols-[88px_1fr_auto] items-center gap-3">
+                      <span className="text-sm">{stage.label}</span>
+                      <div className="h-7 rounded-md bg-muted">
+                        <div className="h-7 rounded-md" style={{ width: `${width}%`, background: `var(--funnel-${index + 1})` }} />
+                      </div>
+                      <span className="text-sm font-medium">{stage.value}</span>
+                      {previous ? (
+                        <span className="col-start-2 -mt-1.5 text-xs text-muted-foreground">
+                          {conversion == null ? "–" : `${formatNumber(conversion)} % von ${previous.label}`}
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
+              <ChartTable
+                caption="Bewerbungstrichter"
+                columns={["Stufe", "Anzahl", "Anteil an Bewerbungen"]}
+                rows={funnel.map((stage) => [
+                  stage.label,
+                  stage.value,
+                  `${formatNumber((stage.value / data.totalApplications) * 100)} %`,
+                ])}
+              />
             </CardBody>
           </Card>
 
-          {funnel.length > 0 ? (
-            <Card>
-              <CardHeader icon={Target} title="Bewerbungstrichter" description="Verteilung nach weitestem erreichtem Schritt." />
-              <CardBody>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={funnel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label>
-                        {funnel.map((slice, index) => (
-                          <Cell key={slice.name} fill={funnelColors[index % funnelColors.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <Tooltip
-                        contentStyle={{
-                          background: "var(--card)",
-                          border: "1px solid var(--border)",
-                          borderRadius: "0.75rem",
-                          color: "var(--card-foreground)",
+          <Card>
+            <CardHeader icon={CalendarDays} title="Aktivität (12 Wochen)" description="Neue Bewerbungen pro Woche." />
+            <CardBody>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={weekly} barCategoryGap="20%">
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} width={28} tick={axisTick} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    cursor={{ fill: "var(--color-muted)" }}
+                    content={
+                      <ChartTooltip
+                        title={(label) => {
+                          const week = weekly.find((entry) => entry.name === label);
+                          return `Woche ab ${week?.full ?? label}`;
                         }}
                       />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardBody>
-            </Card>
-          ) : null}
-
-          <Card>
-            <CardHeader icon={Filter} title="Bewerbungsfortschritt" description="Anteil der Bewerbungen je Schritt." />
-            <CardBody className="space-y-4">
-              {progressRows.map((row) => (
-                <div key={row.label} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{row.label}</span>
-                    <span className="tabular-nums text-muted-foreground">{row.value}</span>
-                  </div>
-                  <Progress
-                    value={data.totalApplications > 0 ? (row.value / data.totalApplications) * 100 : 0}
-                    tone={row.tone}
+                    }
                   />
-                </div>
-              ))}
+                  <Bar dataKey="Bewerbungen" name="Bewerbungen" fill="var(--status-applied)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <ChartTable
+                caption="Neue Bewerbungen pro Woche"
+                columns={["Woche ab", "Bewerbungen"]}
+                rows={weekly.map((week) => [week.full, week.Bewerbungen])}
+              />
             </CardBody>
           </Card>
 
-          <Card>
-            <CardHeader icon={CalendarDays} title="Aktivität (12 Wochen)" description="Bewerbungen je Kalenderwoche." />
+          <Card className="xl:col-span-2">
+            <CardHeader icon={TrendingUp} title="Monatsverlauf" description="Bewerbungen und erreichte Stufen je Monat." />
             <CardBody>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weekly}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--muted-foreground)" fontSize={12} allowDecimals={false} tickLine={false} axisLine={false} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="Bewerbungen" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={monthly}>
+                  <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} width={28} tick={axisTick} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={{ stroke: "var(--chart-axis)", strokeDasharray: "3 3" }} content={<ChartTooltip />} />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    iconType="circle"
+                    formatter={(value) => <span style={{ color: "var(--color-muted-foreground)" }}>{value}</span>}
+                  />
+                  <Line type="monotone" dataKey="Bewerbungen" stroke="var(--status-applied)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="Gespräche" stroke="var(--status-interview)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="Angebote" stroke="var(--status-offer)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="Absagen" stroke="var(--status-rejected)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+              <ChartTable
+                caption="Bewerbungen und erreichte Stufen je Monat"
+                columns={["Monat", "Bewerbungen", "Gespräche", "Angebote", "Absagen"]}
+                rows={monthly.map((month) => [month.name, month.Bewerbungen, month.Gespräche, month.Angebote, month.Absagen])}
+              />
+            </CardBody>
+          </Card>
+
+          <Card className="xl:col-span-2">
+            <CardHeader
+              icon={PieChartIcon}
+              title="Statusverteilung"
+              description="Aktueller Status aller Bewerbungen, inkl. Entwürfe."
+            />
+            <CardBody>
+              <div className="space-y-3">
+                {statusRows.map((row) => (
+                  <div key={row.status} className="grid grid-cols-[150px_1fr_auto] items-center gap-3">
+                    <div>
+                      <ApplicationStatusBadge status={row.status} />
+                    </div>
+                    <div className="h-2.5 rounded-full bg-muted">
+                      <div
+                        className="h-2.5 rounded-full"
+                        style={{ width: `${row.share}%`, background: `var(--status-${row.status.toLowerCase()})` }}
+                      />
+                    </div>
+                    <span className="text-sm">
+                      {row.count} · {formatNumber(row.share)} %
+                    </span>
+                  </div>
+                ))}
               </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader icon={PieChartIcon} title="Statusverteilung" description="Bewerbungen nach aktuellem Status." />
-            <CardBody>
-              {statusData.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Keine Daten vorhanden.</p>
-              ) : (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="55%" outerRadius="80%">
-                        {statusData.map((entry) => (
-                          <Cell key={entry.status} fill={statusColors[entry.status]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <Tooltip contentStyle={tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              <ChartTable
+                caption="Statusverteilung"
+                columns={["Status", "Anzahl", "Anteil"]}
+                rows={statusRows.map((row) => [statusConfig[row.status].label, row.count, `${formatNumber(row.share)} %`])}
+              />
             </CardBody>
           </Card>
         </div>
-      )}
+      </div>
     </>
   );
 }

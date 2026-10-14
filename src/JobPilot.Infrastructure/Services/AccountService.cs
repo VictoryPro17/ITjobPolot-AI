@@ -42,6 +42,7 @@ public class AccountService(
                 u.Skills,
                 u.ResumeText,
                 u.ThemePreference,
+                HasAvatar = u.AvatarStoragePath != null,
                 u.CreatedAt
             })
             .SingleAsync(cancellationToken);
@@ -132,6 +133,11 @@ public class AccountService(
             .Where(d => d.UserId == userId)
             .Select(d => d.StoragePath)
             .ToListAsync(cancellationToken);
+
+        if (user.AvatarStoragePath is not null)
+        {
+            storagePaths.Add(user.AvatarStoragePath);
+        }
 
         // Bei aktivierten Wiederholungsversuchen muss eine eigene Transaktion
         // innerhalb der Execution-Strategy laufen.

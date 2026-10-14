@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { applicationStatusOrder, getStatusLabel, statusConfig } from "@/features/applications/status";
 
 export type ApplicationStatus = "Draft" | "Applied" | "Interview" | "Offer" | "Accepted" | "Rejected";
 export type EmploymentType = "Unspecified" | "FullTime" | "PartTime" | "Contract" | "Internship" | "Freelance";
@@ -49,20 +50,29 @@ export interface ApplicationRequest {
   interviewLocation: string;
 }
 
-const statusLabels: Record<ApplicationStatus, string> = {
-  Draft: "Entwurf",
-  Applied: "Beworben",
-  Interview: "Vorstellungsgespräch",
-  Offer: "Angebot",
-  Accepted: "Zusage",
-  Rejected: "Absage",
+export const statusLabels: Record<ApplicationStatus, string> = Object.fromEntries(
+  applicationStatusOrder.map((status) => [status, statusConfig[status].label]),
+) as Record<ApplicationStatus, string>;
+
+export const applicationStatuses: [ApplicationStatus, string][] = applicationStatusOrder.map((status) => [status, statusConfig[status].label]);
+
+export { getStatusLabel };
+
+export const workModelLabels: Record<WorkModel, string> = {
+  Unspecified: "Nicht angegeben",
+  OnSite: "Vor Ort",
+  Hybrid: "Hybrid",
+  Remote: "Remote",
 };
 
-export const applicationStatuses = Object.entries(statusLabels) as [ApplicationStatus, string][];
-
-export function getStatusLabel(status: ApplicationStatus) {
-  return statusLabels[status];
-}
+export const employmentTypeLabels: Record<EmploymentType, string> = {
+  Unspecified: "Nicht angegeben",
+  FullTime: "Vollzeit",
+  PartTime: "Teilzeit",
+  Contract: "Befristet/Vertrag",
+  Internship: "Praktikum",
+  Freelance: "Freiberuflich",
+};
 
 export async function getApplications(params: { search: string; status: ApplicationStatus | ""; page: number; pageSize?: number }) {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize ?? 10), sortBy: "UpdatedAt", sortDescending: "true" });

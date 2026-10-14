@@ -9,7 +9,7 @@ export class ApiError extends Error {
   }
 }
 
-const BASE_URL = "/api";
+export const BASE_URL = "/api";
 
 interface ProblemDetails {
   title?: string;
