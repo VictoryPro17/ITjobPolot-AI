@@ -100,6 +100,23 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     await user.api.post(`/api/job-applications/${featured.id}/notes`, { data: { content: "Unterlagen vollständig, Rückmeldung innerhalb einer Woche angekündigt." } });
     await user.api.post("/api/reminders", { data: { title: "Nachfassen: Fabrikam", description: null, dueAt: inDays(2, 9), reminderType: "FollowUp", jobApplicationId: created[1].id } });
     await user.api.post("/api/reminders", { data: { title: "Gespräch vorbereiten: Contoso", description: "Projekte und Fragen notieren", dueAt: inDays(2, 18), reminderType: "Interview", jobApplicationId: featured.id } });
+    await user.api.post("/api/reminders", { data: { title: "Unterlagen nachreichen: Tailspin Toys", description: null, dueAt: inDays(-1, 12), reminderType: "Deadline", jobApplicationId: created[3].id } });
+    await user.api.post("/api/reminders", { data: { title: "Rückmeldung Northwind abwarten", description: "Angebot bis Freitag prüfen", dueAt: inDays(5, 9), reminderType: "Custom", jobApplicationId: created[2].id } });
+
+    // Zwei kleine Textdokumente (die API prueft Endung und Inhalt; Text ist erlaubt).
+    for (const [name, type, applicationId, text] of [
+      ["Lebenslauf_Alex_Beispiel.txt", "Resume", null, "Alex Beispiel – Lebenslauf (Beispiel)"],
+      ["Anschreiben_Contoso.txt", "CoverLetter", featured.id, "Anschreiben an Contoso (Beispiel)"],
+    ] as const) {
+      const upload = await user.api.post("/api/documents", {
+        multipart: {
+          file: { name, mimeType: "text/plain", buffer: Buffer.from(text, "utf8") },
+          documentType: type,
+          ...(applicationId ? { jobApplicationId: applicationId } : {}),
+        },
+      });
+      expect(upload.ok(), await upload.text()).toBeTruthy();
+    }
     // Analyse fuer die Detailseite; mit lokaler KI kann das einige Sekunden dauern.
     const analysis = await user.api.post(`/api/ai/job-applications/${featured.id}/analyze`, { timeout: 180_000 });
     expect(analysis.ok()).toBeTruthy();
@@ -114,6 +131,13 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     await shoot(light.page, `/bewerbungen/${featured.id}?tab=ki`, "detail-ki");
     await shoot(light.page, "/statistiken", "statistiken", { fullPage: true });
     await shoot(light.page, "/einstellungen?bereich=darstellung", "einstellungen-darstellung");
+    await shoot(light.page, "/einstellungen", "einstellungen-profil");
+    await shoot(light.page, "/einstellungen?bereich=lebenslauf", "einstellungen-lebenslauf");
+    await shoot(light.page, "/einstellungen?bereich=daten", "einstellungen-daten", { fullPage: true });
+    await shoot(light.page, "/bewerbungen/neu", "formular");
+    await shoot(light.page, "/erinnerungen", "erinnerungen");
+    await shoot(light.page, "/dokumente", "dokumente");
+    await shoot(light.page, `/ki-assistent?bewerbung=${featured.id}`, "ki-assistent");
 
     // Akzentfarben ueber die Einstellungen waehlen (wie ein Benutzer).
     for (const [accent, label] of [["purple", "Lila"], ["green", "Grün"]] as const) {
@@ -145,6 +169,7 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     const anonymous = await browser.newContext({ baseURL, ...desktop, colorScheme: "light", locale: "de-DE" });
     const login = await anonymous.newPage();
     await shoot(login, "/anmelden", "anmeldung");
+    await shoot(login, "/registrieren", "registrierung");
     await anonymous.close();
   } finally {
     await deleteUser(user);

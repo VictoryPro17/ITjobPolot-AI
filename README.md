@@ -10,12 +10,29 @@ Bewerbungsmanager mit Dashboard, Kanban-Board und optionaler lokaler KI-Unterst�
 
 <img src="docs/screenshots/dashboard.png" width="100%" alt="Dashboard von JobPilot AI">
 
+## Inhalt
+
+- [Überblick](#überblick)
+- [Funktionen](#funktionen)
+- [Architektur](#architektur)
+- [Schnellstart](#schnellstart)
+- [Täglicher Start](#täglicher-start)
+- [Konfiguration](#konfiguration)
+- [Lokale KI mit Ollama](#lokale-ki-mit-ollama)
+- [Tests](#tests)
+- [Fehlerbehebung](#fehlerbehebung)
+- [Sicherheit](#sicherheit)
+- [Projektstruktur](#projektstruktur)
+- [Weitere Dokumentation](#weitere-dokumentation)
+- [Entwicklungsphasen](#entwicklungsphasen)
+- [Lizenz](#lizenz)
+
 ## Überblick
 
 JobPilot AI ist eine Full-Stack-Webanwendung zur Verwaltung, Analyse und Auswertung von Bewerbungen.
 Sie ersetzt Excel-Listen durch ein Dashboard, ein Kanban-Board, eine Detailseite pro Bewerbung und
-Statistiken. Match-Analyse und Anschreiben können optional von einem lokalen Sprachmodell (Ollama)
-unterstützt werden; ohne KI arbeitet die Anwendung regelbasiert. Das Projekt richtet sich an
+Statistiken. Lebenslauf-Auslesen und Match-Analyse können optional von einem lokalen Sprachmodell
+(Ollama) unterstützt werden; ohne KI arbeitet die Anwendung regelbasiert. Das Projekt richtet sich an
 Bewerbende, die ihren Prozess strukturiert verfolgen möchten, und dient zugleich als Portfolio-Projekt
 mit einem ASP.NET-Core-10-Backend in Clean Architecture und einem React-19-Frontend.
 
@@ -57,9 +74,10 @@ seitenweise nach; die Karten gibt es in einer kompakten und einer detaillierten 
 ### KI-Analyse und Anschreiben
 
 Die Match-Analyse vergleicht Profil und Stellenbeschreibung und liefert Score, passende und fehlende
-Skills sowie Empfehlungen; zusätzlich lassen sich Anschreiben erzeugen. Ein lokales Ollama-Modell ist
-optional, ohne KI greift eine regelbasierte Analyse. Der Score wird in jedem Fall regelbasiert
-berechnet (siehe [Lokale KI mit Ollama](#lokale-ki-mit-ollama)).
+Skills sowie Empfehlungen. Ein lokales Ollama-Modell ist optional, ohne KI greift eine regelbasierte
+Analyse. Der Score wird in jedem Fall regelbasiert berechnet (siehe [Lokale KI mit Ollama](#lokale-ki-mit-ollama)).
+Anschreiben werden aus einer Vorlage mit Angaben aus Stelle und Profil erstellt und sind als Entwurf
+zum Überarbeiten gedacht.
 
 <img src="docs/screenshots/detail-ki.png" width="100%" alt="Match-Analyse mit Score, Skills und Empfehlungen">
 
@@ -103,6 +121,9 @@ Art. 15 und 20 DSGVO). Das Konto kann endgültig gelöscht werden, einschließli
 Dateien.
 
 ## Architektur
+
+Kurzüberblick; Datenmodell, Anfrage-Pipeline, KI-Ablauf und Frontend-Aufbau beschreibt
+[docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) ausführlich.
 
 ```mermaid
 flowchart LR
@@ -188,6 +209,21 @@ npm run dev
 Die Oberfläche läuft auf `http://localhost:5173`. Der Vite-Dev-Proxy leitet alle Anfragen an
 `/api` an die ASP.NET Core API weiter. Dadurch teilen sich Frontend und API im Browser dieselbe
 Origin, was die Cookie-Authentifizierung ohne SameSite-Sonderregeln ermöglicht.
+
+## Täglicher Start
+
+Nach der einmaligen Einrichtung genügen drei Schritte, jeweils in einem eigenen Terminal:
+
+| Schritt | PowerShell (Windows) | Bash |
+|---------|----------------------|------|
+| 1. Datenbank | `docker compose up -d` | `docker compose up -d` |
+| 2. API | `dotnet run --project src/JobPilot.Api` | `dotnet run --project src/JobPilot.Api` |
+| 3. Web-App | `cd frontend; npm run dev` | `cd frontend && npm run dev` |
+| 4. KI (optional) | `ollama serve` | `ollama serve` |
+
+Danach ist die Anwendung unter **http://localhost:5173** erreichbar, die API unter
+**http://localhost:5042**. Die API wendet ausstehende Migrationen beim Start automatisch an. Läuft Ollama
+bereits (z. B. als Hintergrunddienst), meldet `ollama serve`, dass die Adresse belegt ist; das ist in Ordnung.
 
 ## Konfiguration
 
@@ -279,8 +315,15 @@ npm run e2e -- --project=mobile   # nur Handybreite
 npm run e2e:ui                    # interaktiver Modus
 ```
 
+In PowerShell werden die Umgebungsvariablen vorher gesetzt:
+
+```powershell
+$env:RateLimiting__GlobalPermitLimit = "100000"; $env:RateLimiting__AuthPermitLimit = "1000"
+dotnet run --project src/JobPilot.Api
+```
+
 `e2e/visual.spec.ts` legt Screenshots der Hauptseiten und einen Barrierefreiheitsbericht (axe) in
-`frontend/e2e-artifacts/` ab. Der Bericht lässt den Lauf nicht scheitern.
+`frontend/e2e-artifacts/` ab. Schwere und kritische Befunde lassen den Lauf scheitern.
 
 ### Screenshots der Dokumentation
 
@@ -290,6 +333,22 @@ cd frontend && npm run docs:screenshots
 
 Das Skript erzeugt die Bilder in `docs/screenshots/` neu und verwendet dafür fiktive Demodaten. Wie bei
 den Browser-Tests muss die API mit erhöhten Rate-Limits laufen (siehe oben).
+Läuft bereits eine API mit normalen Limits, kann das Skript auch gegen eine zweite Instanz laufen,
+z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://localhost:5043`); dann
+`E2E_BASE_URL=http://localhost:5174` und `E2E_API_URL=http://localhost:5043` setzen.
+
+## Fehlerbehebung
+
+| Symptom | Ursache | Lösung |
+|---------|---------|--------|
+| API startet nicht: *address already in use* (Port 5042) | Eine API-Instanz läuft bereits | Andere Instanz beenden oder diese weiterverwenden |
+| Fehler beim Binden an Port 5099 o. ä. | Windows reserviert Portbereiche (`netsh interface ipv4 show excludedportrange protocol=tcp`) | Port außerhalb der Reservierung wählen; die API nutzt standardmäßig 5042 |
+| Vite meldet *Port 5173 is in use* | Web-App läuft bereits | Vorhandene Instanz im Browser öffnen |
+| *Die Datenbank ist nicht erreichbar* / `/api/health/database` schlägt fehl | Docker Desktop oder der Container läuft nicht | Docker starten, `docker compose up -d`, mit `docker ps` prüfen |
+| Browser-Tests scheitern mit **429 Too Many Requests** | Rate-Limits der API greifen | API mit erhöhten `RateLimiting__*`-Werten starten (siehe [Browser-Tests](#browser-tests-playwright)) |
+| Playwright: *Executable doesn't exist* | Browser nicht installiert | `npx playwright install chromium` im Ordner `frontend` |
+| KI-Assistent zeigt „KI nicht erreichbar – regelbasiert“ | Ollama läuft nicht oder Modell fehlt | `ollama serve` und `ollama pull qwen2.5:3b`; Zustand unter `GET /api/ai/status` |
+| Erste KI-Analyse dauert sehr lange | Das Modell wird beim ersten Aufruf geladen | Einmal abwarten; folgende Aufrufe sind deutlich schneller |
 
 ## Sicherheit
 
@@ -319,9 +378,18 @@ den Browser-Tests muss die API mit erhöhten Rate-Limits laufen (siehe oben).
     JobPilot.Tests/           xUnit-Tests
   frontend/                   React + TypeScript + Vite
     e2e/                      Playwright-Tests und Skript für Dokumentations-Screenshots
-  docs/screenshots/           Screenshots für dieses README
+  docs/                       Benutzerhandbuch, API-Referenz, Architektur
+    screenshots/              Screenshots (erzeugt mit npm run docs:screenshots)
   docker-compose.yml          PostgreSQL 17
 ```
+
+## Weitere Dokumentation
+
+| Dokument | Inhalt |
+|----------|--------|
+| [docs/BENUTZERHANDBUCH.md](docs/BENUTZERHANDBUCH.md) | Bedienung der Anwendung Schritt für Schritt, mit Screenshots |
+| [docs/API.md](docs/API.md) | Alle Endpunkte, Fehlerformat, Rate-Limits und ein Beispielablauf mit curl |
+| [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) | Schichten, Datenmodell, Sicherheit, KI-Ablauf, Frontend und Teststrategie |
 
 ## Entwicklungsphasen
 
