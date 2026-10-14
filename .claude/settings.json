@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node C:/Users/victo/AppData/Local/Temp/claude/bundled-skills/2.1.296/ba1909dccf283817cd76a088cbf67d4a/dataviz/scripts/validate_palette.js '#2a78d6,#4a3aa7,#eda100,#1baf7a,#b02a2a' --mode light --surface '#ffffff')",
+      "Bash(sed -i '/^const toneByStatus/,/^};$/d' pages/ApplicationsPage.tsx features/dashboard/RecentActivity.tsx)",
+      "Bash(sed -i 's#import { StatusBadge } from \"@/components/ui/StatusBadge\";#import { ApplicationStatusBadge } from \"@/components/ui/ApplicationStatusBadge\";#' pages/ApplicationsPage.tsx features/dashboard/RecentActivity.tsx)",
+      "Bash(sed -i 's#<StatusBadge tone={toneByStatus\\\\[application.status\\\\]}>{getStatusLabel\\(application.status\\)}</StatusBadge>#<ApplicationStatusBadge status={application.status} />#' pages/ApplicationsPage.tsx features/dashboard/RecentActivity.tsx)",
+      "Bash(sed -i 's#import { deleteApplication, getApplications, getStatusLabel, applicationStatuses,#import { deleteApplication, getApplications, applicationStatuses,#' pages/ApplicationsPage.tsx)",
+      "Bash(sed -i 's#import { getApplications, getStatusLabel, type ApplicationStatus } from#import { getApplications } from#' features/dashboard/RecentActivity.tsx)"
+    ]
+  }
+}
