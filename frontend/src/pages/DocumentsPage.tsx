@@ -78,7 +78,7 @@ export function DocumentsPage() {
   const [editError, setEditError] = useState("");
   const [deleting, setDeleting] = useState<DocumentItem | null>(null);
 
-  const documents = useQuery({ queryKey: ["documents"], queryFn: getDocuments });
+  const documents = useQuery({ queryKey: ["documents"], queryFn: () => getDocuments() });
   const applications = useQuery({
     queryKey: ["applications", "options"],
     queryFn: () => getApplications({ search: "", status: "", page: 1, pageSize: 100 }),

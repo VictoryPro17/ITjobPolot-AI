@@ -103,7 +103,7 @@ function RowActions({ item, onDelete }: { item: ApplicationListItem; onDelete: (
   return (
     <div className="flex justify-end gap-1">
       <Link
-        to={`/bewerbungen/${item.id}`}
+        to={`/bewerbungen/${item.id}/bearbeiten`}
         aria-label="Bearbeiten"
         className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent"
       >

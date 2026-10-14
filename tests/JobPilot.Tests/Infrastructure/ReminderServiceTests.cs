@@ -74,6 +74,25 @@ public class ReminderServiceTests
     }
 
     [Fact]
+    public async Task GetAll_FiltersByApplication()
+    {
+        await using var context = CreateContext();
+        var userId = Guid.CreateVersion7();
+        var application = new JobPilot.Domain.Entities.JobApplication { UserId = userId, CompanyName = "Contoso", JobTitle = "Entwickler" };
+        context.JobApplications.Add(application);
+        await context.SaveChangesAsync();
+        var service = CreateService(context, userId);
+
+        await service.CreateAsync(new SaveReminderRequest("Zur Bewerbung", null, Now.AddDays(1), ReminderType.FollowUp, application.Id));
+        await service.CreateAsync(new SaveReminderRequest("Allgemein", null, Now.AddDays(2), ReminderType.Custom, null));
+
+        var filtered = await service.GetAllAsync(ReminderFilter.All, application.Id);
+
+        Assert.Equal(["Zur Bewerbung"], filtered.Select(r => r.Title));
+        Assert.Equal(2, (await service.GetAllAsync(ReminderFilter.All)).Count);
+    }
+
+    [Fact]
     public async Task Create_StoresDueDateInUtc()
     {
         // PostgreSQL (timestamptz) akzeptiert ueber Npgsql nur DateTimeOffset mit Offset 0.

@@ -17,8 +17,9 @@ public class RemindersController(IReminderService reminderService) : ControllerB
     [ProducesResponseType<IReadOnlyList<ReminderDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ReminderDto>>> GetAll(
         [FromQuery] ReminderFilter filter = ReminderFilter.Open,
+        [FromQuery] Guid? jobApplicationId = null,
         CancellationToken cancellationToken = default)
-        => Ok(await reminderService.GetAllAsync(filter, cancellationToken));
+        => Ok(await reminderService.GetAllAsync(filter, jobApplicationId, cancellationToken));
 
     [HttpGet("upcoming")]
     [ProducesResponseType<IReadOnlyList<ReminderDto>>(StatusCodes.Status200OK)]

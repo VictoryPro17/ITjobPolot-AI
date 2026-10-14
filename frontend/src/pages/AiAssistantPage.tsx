@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
@@ -47,7 +47,9 @@ const writingStyleLabels: Record<WritingStyle, string> = {
 };
 
 export function AiAssistantPage() {
-  const [selectedApplicationId, setSelectedApplicationId] = useState("");
+  const [searchParams] = useSearchParams();
+  // Vorauswahl ueber ?bewerbung=<id>, z. B. aus der Detailseite einer Bewerbung.
+  const [selectedApplicationId, setSelectedApplicationId] = useState(() => searchParams.get("bewerbung") ?? "");
   const [coverLetterTitle, setCoverLetterTitle] = useState("Anschreiben für die Position");
   const [style, setStyle] = useState<WritingStyle>("Professional");
   const [isDraft, setIsDraft] = useState(true);

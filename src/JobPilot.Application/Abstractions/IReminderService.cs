@@ -5,7 +5,8 @@ namespace JobPilot.Application.Abstractions;
 /// <summary>Erinnerungen des angemeldeten Benutzers.</summary>
 public interface IReminderService
 {
-    Task<IReadOnlyList<ReminderDto>> GetAllAsync(ReminderFilter filter, CancellationToken cancellationToken = default);
+    /// <summary>Erinnerungen nach Status, optional nur die einer bestimmten Bewerbung.</summary>
+    Task<IReadOnlyList<ReminderDto>> GetAllAsync(ReminderFilter filter, Guid? jobApplicationId = null, CancellationToken cancellationToken = default);
 
     /// <summary>Offene Erinnerungen inklusive ueberfaelliger, nach Faelligkeit sortiert.</summary>
     Task<IReadOnlyList<ReminderDto>> GetUpcomingAsync(int take, CancellationToken cancellationToken = default);

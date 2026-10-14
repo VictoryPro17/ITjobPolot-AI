@@ -69,10 +69,10 @@ const maxLengths: Partial<Record<keyof ApplicationRequest, number>> = {
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Uebernimmt nur die Formularfelder; fehlende Werte (die API laesst null weg) werden zu Standardwerten. */
-function toForm(data: Partial<ApplicationRequest>): ApplicationRequest {
+function toForm(data: object): ApplicationRequest {
   const form = { ...initialForm };
   for (const key of Object.keys(initialForm) as (keyof ApplicationRequest)[]) {
-    const value = data[key];
+    const value = (data as Record<string, unknown>)[key];
     if (value != null) {
       (form as Record<string, unknown>)[key] = value;
     }
@@ -160,6 +160,7 @@ export function ApplicationFormPage() {
     setErrors({});
   }, [baseline]);
 
+  const backTarget = id ? `/bewerbungen/${id}` : "/bewerbungen";
   const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline), [form, baseline]);
 
   // Schutz vor versehentlichem Schliessen oder Neuladen mit ungespeicherten Aenderungen.
@@ -172,11 +173,13 @@ export function ApplicationFormPage() {
 
   const save = useMutation({
     mutationFn: (request: ApplicationRequest) => (id ? updateApplication(id, request) : createApplication(request)),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       for (const key of ["applications", "summary", "statistics", "application"]) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
-      navigate("/bewerbungen");
+      // Nach dem Speichern zur Detailseite; faellt die Antwort ohne Kennung aus, zur Liste.
+      const targetId = id ?? (saved as { id?: string } | undefined)?.id;
+      navigate(targetId ? `/bewerbungen/${targetId}` : "/bewerbungen");
     },
   });
 
@@ -231,7 +234,7 @@ export function ApplicationFormPage() {
 
   function cancel() {
     if (isDirty) setConfirmLeave(true);
-    else navigate("/bewerbungen");
+    else navigate(backTarget);
   }
 
   const header = (
@@ -389,7 +392,7 @@ export function ApplicationFormPage() {
         cancelLabel="Weiter bearbeiten"
         tone="destructive"
         onCancel={() => setConfirmLeave(false)}
-        onConfirm={() => navigate("/bewerbungen")}
+        onConfirm={() => navigate(backTarget)}
       />
     </>
   );

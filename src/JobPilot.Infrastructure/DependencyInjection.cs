@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IReminderService, ReminderService>();
+        services.AddScoped<IApplicationNoteService, ApplicationNoteService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IAvatarService, AvatarService>();
 

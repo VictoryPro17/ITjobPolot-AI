@@ -150,6 +150,69 @@ public class AiService(
             letter.CreatedAt);
     }
 
+    public async Task<AiAnalysisDto?> GetLatestAnalysisAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.RequireUserId();
+        await EnsureApplicationBelongsToUserAsync(applicationId, userId, cancellationToken);
+
+        var analysis = await db.AiAnalyses
+            .AsNoTracking()
+            .Where(a => a.JobApplicationId == applicationId && a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Faktoren und Profilhinweise werden nicht gespeichert, sondern nur bei einer neuen Analyse geliefert.
+        return analysis is null
+            ? null
+            : new AiAnalysisDto(
+                analysis.Id,
+                applicationId,
+                analysis.MatchScore,
+                analysis.Summary ?? string.Empty,
+                analysis.RequiredSkills,
+                analysis.MatchedSkills,
+                analysis.MissingSkills,
+                analysis.Recommendations,
+                analysis.SuggestedLearningTopics,
+                analysis.Provider,
+                analysis.Model,
+                analysis.CreatedAt,
+                [],
+                []);
+    }
+
+    public async Task<IReadOnlyList<GeneratedCoverLetterDto>> GetCoverLettersAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.RequireUserId();
+        await EnsureApplicationBelongsToUserAsync(applicationId, userId, cancellationToken);
+
+        return await db.GeneratedCoverLetters
+            .AsNoTracking()
+            .Where(c => c.JobApplicationId == applicationId && c.UserId == userId)
+            .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new GeneratedCoverLetterDto(
+                c.Id,
+                applicationId,
+                c.Title,
+                c.Content,
+                c.CompanyName,
+                c.JobTitle,
+                c.Style,
+                c.IsDraft,
+                c.Provider,
+                c.Model,
+                c.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task EnsureApplicationBelongsToUserAsync(Guid applicationId, Guid userId, CancellationToken cancellationToken)
+    {
+        if (!await db.JobApplications.AnyAsync(a => a.Id == applicationId && a.UserId == userId, cancellationToken))
+        {
+            throw NotFoundException.For("Bewerbung", applicationId);
+        }
+    }
+
     private static string BuildCoverLetter(JobApplication application, GenerateCoverLetterRequest request, ApplicationUser? user)
     {
         var tone = request.Style switch

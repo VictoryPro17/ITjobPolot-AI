@@ -95,13 +95,67 @@ export async function getApplications(params: {
   return apiFetch<PagedApplications>(`/job-applications?${query}`);
 }
 
+export interface StatusHistoryEntry {
+  id: string;
+  fromStatus?: ApplicationStatus | null;
+  toStatus: ApplicationStatus;
+  changedAt: string;
+  comment?: string | null;
+}
+
+/** Vollstaendige Bewerbung; die API laesst leere Felder weg, daher sind alle optionalen Felder optional. */
+export interface ApplicationDetail {
+  id: string;
+  companyName: string;
+  jobTitle: string;
+  location?: string | null;
+  employmentType: EmploymentType;
+  workModel: WorkModel;
+  salary?: string | null;
+  jobPostingUrl?: string | null;
+  appliedOn?: string | null;
+  status: ApplicationStatus;
+  jobDescription?: string | null;
+  technologies: string[];
+  notes?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  interviewAt?: string | null;
+  interviewLocation?: string | null;
+  isOpen: boolean;
+  createdAt: string;
+  updatedAt: string;
+  statusHistory: StatusHistoryEntry[];
+}
+
 export function getApplication(id: string) {
-  return apiFetch<ApplicationRequest & { id: string }>(`/job-applications/${id}`);
+  return apiFetch<ApplicationDetail>(`/job-applications/${id}`);
 }
 
 export function createApplication(request: ApplicationRequest) {
-  return apiFetch("/job-applications", { method: "POST", body: JSON.stringify(request) });
+  return apiFetch<ApplicationDetail>("/job-applications", { method: "POST", body: JSON.stringify(request) });
 }
+
+export interface ApplicationNote {
+  id: string;
+  jobApplicationId: string;
+  content: string;
+  createdAt: string;
+}
+
+export function getApplicationNotes(applicationId: string) {
+  return apiFetch<ApplicationNote[]>(`/job-applications/${applicationId}/notes`);
+}
+
+export function createApplicationNote(applicationId: string, content: string) {
+  return apiFetch<ApplicationNote>(`/job-applications/${applicationId}/notes`, { method: "POST", body: JSON.stringify({ content }) });
+}
+
+export function deleteApplicationNote(applicationId: string, noteId: string) {
+  return apiFetch<void>(`/job-applications/${applicationId}/notes/${noteId}`, { method: "DELETE" });
+}
+
 
 export function updateApplication(id: string, request: ApplicationRequest) {
   return apiFetch(`/job-applications/${id}`, { method: "PUT", body: JSON.stringify(request) });
@@ -227,6 +281,15 @@ export function getAiStatus() {
 
 export function analyzeApplication(applicationId: string) {
   return apiFetch<AiAnalysis>(`/ai/job-applications/${applicationId}/analyze`, { method: "POST" });
+}
+
+/** Letzte gespeicherte Analyse oder null (API antwortet dann mit 204). */
+export async function getLatestAnalysis(applicationId: string) {
+  return (await apiFetch<AiAnalysis | undefined>(`/ai/job-applications/${applicationId}/analyses/latest`)) ?? null;
+}
+
+export function getCoverLetters(applicationId: string) {
+  return apiFetch<GeneratedCoverLetter[]>(`/ai/job-applications/${applicationId}/cover-letters`);
 }
 
 export function generateCoverLetter(

@@ -14,10 +14,18 @@ public class ReminderService(
     ICurrentUser currentUser,
     TimeProvider timeProvider) : IReminderService
 {
-    public async Task<IReadOnlyList<ReminderDto>> GetAllAsync(ReminderFilter filter, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ReminderDto>> GetAllAsync(
+        ReminderFilter filter,
+        Guid? jobApplicationId = null,
+        CancellationToken cancellationToken = default)
     {
         var userId = currentUser.RequireUserId();
         var query = Query(userId);
+
+        if (jobApplicationId.HasValue)
+        {
+            query = query.Where(r => r.JobApplicationId == jobApplicationId.Value);
+        }
 
         query = filter switch
         {

@@ -22,8 +22,8 @@ export const documentTypeLabels: Record<DocumentType, string> = {
   Other: "Sonstiges",
 };
 
-export function getDocuments() {
-  return apiFetch<DocumentItem[]>("/documents");
+export function getDocuments(jobApplicationId?: string) {
+  return apiFetch<DocumentItem[]>(jobApplicationId ? `/documents?jobApplicationId=${jobApplicationId}` : "/documents");
 }
 
 export function uploadDocument(file: File, documentType: DocumentType, jobApplicationId: string | null) {

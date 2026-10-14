@@ -32,8 +32,10 @@ export const reminderTypeLabels: Record<ReminderType, string> = {
   FollowUp: "Nachfassen",
 };
 
-export function getReminders(filter: ReminderFilter) {
-  return apiFetch<Reminder[]>(`/reminders?filter=${filter}`);
+export function getReminders(filter: ReminderFilter, jobApplicationId?: string) {
+  const query = new URLSearchParams({ filter });
+  if (jobApplicationId) query.set("jobApplicationId", jobApplicationId);
+  return apiFetch<Reminder[]>(`/reminders?${query}`);
 }
 
 export function getUpcomingReminders(take = 5) {

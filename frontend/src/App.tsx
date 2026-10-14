@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import { ApplicationsPage } from "@/pages/ApplicationsPage";
+import { ApplicationDetailPage } from "@/pages/ApplicationDetailPage";
 import { ApplicationFormPage } from "@/pages/ApplicationFormPage";
 import { KanbanPage } from "@/pages/KanbanPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
@@ -25,7 +26,8 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="bewerbungen" element={<ApplicationsPage />} />
         <Route path="bewerbungen/neu" element={<ApplicationFormPage />} />
-        <Route path="bewerbungen/:id" element={<ApplicationFormPage />} />
+        <Route path="bewerbungen/:id" element={<ApplicationDetailPage />} />
+        <Route path="bewerbungen/:id/bearbeiten" element={<ApplicationFormPage />} />
         <Route path="board" element={<KanbanPage />} />
         <Route path="ki-assistent" element={<AiAssistantPage />} />
         <Route path="dokumente" element={<DocumentsPage />} />

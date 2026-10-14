@@ -50,4 +50,21 @@ public class AiController(
         [FromBody] GenerateCoverLetterRequest request,
         CancellationToken cancellationToken)
         => Ok(await aiService.GenerateCoverLetterAsync(jobApplicationId, request, cancellationToken));
+
+    /// <summary>Letzte gespeicherte Analyse; 204, wenn die Bewerbung noch nicht analysiert wurde.</summary>
+    [HttpGet("job-applications/{jobApplicationId:guid}/analyses/latest")]
+    [ProducesResponseType<AiAnalysisDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AiAnalysisDto>> GetLatestAnalysis(Guid jobApplicationId, CancellationToken cancellationToken)
+    {
+        var analysis = await aiService.GetLatestAnalysisAsync(jobApplicationId, cancellationToken);
+        return analysis is null ? NoContent() : Ok(analysis);
+    }
+
+    [HttpGet("job-applications/{jobApplicationId:guid}/cover-letters")]
+    [ProducesResponseType<IReadOnlyList<GeneratedCoverLetterDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<GeneratedCoverLetterDto>>> GetCoverLetters(Guid jobApplicationId, CancellationToken cancellationToken)
+        => Ok(await aiService.GetCoverLettersAsync(jobApplicationId, cancellationToken));
 }

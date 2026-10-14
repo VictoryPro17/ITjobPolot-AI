@@ -312,6 +312,46 @@ public class AiServiceTests
         Assert.Equal(userId, (await context.GeneratedCoverLetters.SingleAsync()).UserId);
     }
 
+    [Fact]
+    public async Task GetLatestAnalysis_ReturnsNullUntilAnalyzedThenNewest()
+    {
+        await using var context = CreateContext();
+        var userId = Guid.CreateVersion7();
+        var application = new JobApplication { UserId = userId, CompanyName = "Contoso", JobTitle = "Backend Developer", JobDescription = "C# und PostgreSQL" };
+        context.JobApplications.Add(application);
+        await context.SaveChangesAsync();
+        var service = CreateService(context, userId);
+
+        Assert.Null(await service.GetLatestAnalysisAsync(application.Id));
+
+        await service.AnalyzeApplicationAsync(application.Id);
+        var newest = await service.AnalyzeApplicationAsync(application.Id);
+        (await context.AiAnalyses.SingleAsync(a => a.Id != newest.Id)).CreatedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        await context.SaveChangesAsync();
+
+        var latest = await service.GetLatestAnalysisAsync(application.Id);
+        Assert.Equal(newest.Id, latest!.Id);
+        Assert.Equal(newest.MatchScore, latest.MatchScore);
+    }
+
+    [Fact]
+    public async Task StoredResults_AreNotVisibleToOtherUsers()
+    {
+        await using var context = CreateContext();
+        var ownerId = Guid.CreateVersion7();
+        var application = new JobApplication { UserId = ownerId, CompanyName = "Contoso", JobTitle = "Backend Developer" };
+        context.JobApplications.Add(application);
+        await context.SaveChangesAsync();
+        var owner = CreateService(context, ownerId);
+        await owner.GenerateCoverLetterAsync(application.Id, new GenerateCoverLetterRequest("Anschreiben"));
+
+        Assert.Single(await owner.GetCoverLettersAsync(application.Id));
+
+        var intruder = CreateService(context, Guid.CreateVersion7());
+        await Assert.ThrowsAsync<NotFoundException>(() => intruder.GetLatestAnalysisAsync(application.Id));
+        await Assert.ThrowsAsync<NotFoundException>(() => intruder.GetCoverLettersAsync(application.Id));
+    }
+
     private static JobPilotDbContext CreateContext(string? databaseName = null) =>
         new(new DbContextOptionsBuilder<JobPilotDbContext>()
             .UseInMemoryDatabase(databaseName ?? Guid.CreateVersion7().ToString())
