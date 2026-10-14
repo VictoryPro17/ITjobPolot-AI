@@ -47,7 +47,10 @@ public class AiService(
             profileUser?.ProfileSummary,
             profileUser?.ExperienceSummary,
             profileUser?.EducationSummary,
-            profileUser?.ResumeText);
+            profileUser?.ResumeText,
+            string.IsNullOrWhiteSpace(profileUser?.FirstName) && string.IsNullOrWhiteSpace(profileUser?.LastName)
+                ? null
+                : profileUser!.DisplayName);
 
         var result = await matchAnalyzer.AnalyzeAsync(input, cancellationToken);
 

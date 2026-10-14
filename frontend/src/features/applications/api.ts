@@ -190,6 +190,17 @@ export interface GeneratedCoverLetter {
   createdAt: string;
 }
 
+export interface AiStatus {
+  enabled: boolean;
+  provider: string;
+  model?: string | null;
+  available: boolean;
+}
+
+export function getAiStatus() {
+  return apiFetch<AiStatus>("/ai/status");
+}
+
 export function analyzeApplication(applicationId: string) {
   return apiFetch<AiAnalysis>(`/ai/job-applications/${applicationId}/analyze`, { method: "POST" });
 }

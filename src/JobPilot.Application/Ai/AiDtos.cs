@@ -8,6 +8,9 @@ public record GenerateCoverLetterRequest(
     WritingStyle Style = WritingStyle.Professional,
     bool IsDraft = true);
 
+/// <summary>Zustand der KI-Anbindung fuer die Oberflaeche.</summary>
+public record AiStatusDto(bool Enabled, string Provider, string? Model, bool Available);
+
 /// <summary>Einzelner, gewichteter Faktor des Match-Scores.</summary>
 public record MatchFactorDto(
     string Key,

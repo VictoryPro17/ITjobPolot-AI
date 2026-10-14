@@ -13,7 +13,8 @@ public record JobMatchInput(
     string? ProfileSummary,
     string? ExperienceSummary,
     string? EducationSummary,
-    string? ResumeText);
+    string? ResumeText,
+    string? CandidateName = null);
 
 /// <summary>Ergebnis des Abgleichs inklusive Herkunft (Anbieter und Modell).</summary>
 public record JobMatchResult(

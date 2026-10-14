@@ -15,7 +15,7 @@ public class HeuristicJobMatchAnalyzer(TimeProvider timeProvider) : IJobMatchAna
     public const string ProviderName = "local";
     public const string ModelName = "heuristic-v1";
 
-    private const int SkillsWeight = 70;
+    public const int SkillsWeight = 70;
     private const int ExperienceWeight = 15;
     private const int PositionWeight = 15;
 
@@ -23,6 +23,22 @@ public class HeuristicJobMatchAnalyzer(TimeProvider timeProvider) : IJobMatchAna
     {
         "m", "w", "d", "f", "x", "und", "and", "in", "für", "for", "the", "der", "die", "das", "mit", "with"
     };
+
+    /// <summary>Gewichteter Gesamt-Score; Faktoren ohne Daten sind gar nicht erst enthalten.</summary>
+    public static int ComputeScore(IReadOnlyCollection<MatchFactorDto> factors)
+    {
+        var totalWeight = factors.Sum(f => f.Weight);
+        return totalWeight == 0
+            ? 0
+            : Math.Clamp((int)Math.Round((double)factors.Sum(f => f.Score * f.Weight) / totalWeight), 0, 100);
+    }
+
+    public static MatchFactorDto BuildSkillsFactor(int matched, int required) => new(
+        "skills",
+        "Technologien",
+        (int)Math.Round((double)matched / required * 100),
+        SkillsWeight,
+        $"{matched} von {required} geforderten Technologien sind in deinem Profil oder Lebenslauf belegt.");
 
     public Task<JobMatchResult> AnalyzeAsync(JobMatchInput input, CancellationToken cancellationToken = default)
     {
@@ -52,12 +68,7 @@ public class HeuristicJobMatchAnalyzer(TimeProvider timeProvider) : IJobMatchAna
 
         if (requiredSkills.Count > 0)
         {
-            factors.Add(new MatchFactorDto(
-                "skills",
-                "Technologien",
-                (int)Math.Round((double)matchedSkills.Count / requiredSkills.Count * 100),
-                SkillsWeight,
-                $"{matchedSkills.Count} von {requiredSkills.Count} geforderten Technologien sind in deinem Profil oder Lebenslauf belegt."));
+            factors.Add(BuildSkillsFactor(matchedSkills.Count, requiredSkills.Count));
         }
 
         var requiredYears = ExperienceYears.ExtractStated(input.JobDescription);
@@ -101,10 +112,7 @@ public class HeuristicJobMatchAnalyzer(TimeProvider timeProvider) : IJobMatchAna
                 $"Deine Wunschposition „{input.TargetJobTitle.Trim()}“ überschneidet sich zu {overlap} % mit „{input.JobTitle}“."));
         }
 
-        var totalWeight = factors.Sum(f => f.Weight);
-        var matchScore = totalWeight == 0
-            ? 0
-            : Math.Clamp((int)Math.Round((double)factors.Sum(f => f.Score * f.Weight) / totalWeight), 0, 100);
+        var matchScore = ComputeScore(factors);
 
         var profileHints = new List<string>();
         if (!input.ProfileSkills.Any(s => !string.IsNullOrWhiteSpace(s)))

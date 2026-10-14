@@ -1,8 +1,12 @@
 using JobPilot.Application.Abstractions;
 using JobPilot.Application.Ai;
+using JobPilot.Application.Common;
+using JobPilot.Infrastructure;
+using JobPilot.Infrastructure.Ai;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace JobPilot.Api.Controllers;
 
@@ -11,8 +15,23 @@ namespace JobPilot.Api.Controllers;
 [Authorize]
 [Route("api/ai")]
 [Produces("application/json")]
-public class AiController(IAiService aiService) : ControllerBase
+public class AiController(
+    IAiService aiService,
+    OllamaClient ollamaClient,
+    IOptions<AiOptions> aiOptions) : ControllerBase
 {
+    /// <summary>Zeigt, ob eine KI aktiv und erreichbar ist; sonst wird regelbasiert analysiert.</summary>
+    [HttpGet("status")]
+    [ProducesResponseType<AiStatusDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AiStatusDto>> GetStatus(CancellationToken cancellationToken)
+    {
+        var options = aiOptions.Value;
+        var usesOllama = DependencyInjection.UsesOllama(options);
+        var available = usesOllama && await ollamaClient.IsAvailableAsync(cancellationToken);
+
+        return Ok(new AiStatusDto(options.Enabled, options.Provider, options.Model, available));
+    }
+
     [HttpPost("job-applications/{jobApplicationId:guid}/analyze")]
     [ProducesResponseType<AiAnalysisDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

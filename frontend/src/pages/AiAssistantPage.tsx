@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import {
   analyzeApplication,
   generateCoverLetter,
+  getAiStatus,
   getApplications,
   type AiAnalysis,
   type GeneratedCoverLetter,
@@ -56,6 +57,9 @@ export function AiAssistantPage() {
     queryKey: ["applications", "ai"],
     queryFn: () => getApplications({ search: "", status: "", page: 1 }),
   });
+
+  const aiStatus = useQuery({ queryKey: ["ai", "status"], queryFn: getAiStatus });
+  const aiAvailable = aiStatus.data?.available === true;
 
   useEffect(() => {
     const firstApplication = applications.data?.items[0];
@@ -141,6 +145,17 @@ export function AiAssistantPage() {
         icon={Sparkles}
         title="KI-Assistent"
         description="Analysiere Stellenanzeigen und generiere passende Anschreiben direkt für deine Bewerbungen."
+        action={
+          aiStatus.data ? (
+            aiAvailable ? (
+              <Badge tone="success">Lokale KI aktiv · {aiStatus.data.model}</Badge>
+            ) : aiStatus.data.enabled ? (
+              <Badge tone="warning">KI nicht erreichbar – regelbasiert</Badge>
+            ) : (
+              <Badge tone="neutral">Regelbasierte Analyse</Badge>
+            )
+          ) : null
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -194,6 +209,11 @@ export function AiAssistantPage() {
             <CardBody>
               {analysisMutation.isPending ? (
                 <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {aiAvailable
+                      ? "Die Stelle wird analysiert… (lokale KI kann bis zu einer Minute brauchen)"
+                      : "Die Stelle wird analysiert…"}
+                  </p>
                   <Skeleton className="h-28" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />

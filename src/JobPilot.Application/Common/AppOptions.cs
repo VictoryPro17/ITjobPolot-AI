@@ -35,15 +35,21 @@ public class AiOptions
 {
     public const string SectionName = "Ai";
 
-    /// <summary>Schaltet kostenpflichtige KI-Anbieter frei. Die regelbasierte Analyse ist immer verfuegbar.</summary>
+    /// <summary>Schaltet externe bzw. lokale KI-Anbieter frei. Die regelbasierte Analyse ist immer verfuegbar.</summary>
     public bool Enabled { get; set; }
 
-    /// <summary>"openai" oder "anthropic".</summary>
+    /// <summary>"ollama" (lokal, kostenlos); "openai" und "anthropic" sind vorbereitet.</summary>
     public string Provider { get; set; } = "openai";
 
     public string? ApiKey { get; set; }
 
     public string? Model { get; set; }
+
+    /// <summary>Basisadresse des Anbieters, fuer Ollama z. B. http://localhost:11434.</summary>
+    public string BaseUrl { get; set; } = "http://localhost:11434";
+
+    /// <summary>Maximale Dauer eines KI-Aufrufs; danach greift die regelbasierte Analyse.</summary>
+    public int TimeoutSeconds { get; set; } = 120;
 
     /// <summary>Obergrenze der KI-Aufrufe pro Benutzer und Tag (Kostenkontrolle).</summary>
     public int DailyRequestLimitPerUser { get; set; } = 25;

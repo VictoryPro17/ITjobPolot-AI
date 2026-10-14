@@ -1,10 +1,13 @@
 ﻿using JobPilot.Application.Abstractions;
+using JobPilot.Application.Common;
+using JobPilot.Infrastructure.Ai;
 using JobPilot.Infrastructure.Persistence;
 using JobPilot.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace JobPilot.Infrastructure;
 
@@ -35,9 +38,27 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IJobApplicationService, JobApplicationService>();
         services.AddScoped<IAiService, AiService>();
-        services.AddScoped<IResumeProfileExtractor, HeuristicResumeProfileExtractor>();
-        services.AddScoped<IJobMatchAnalyzer, HeuristicJobMatchAnalyzer>();
         services.TryAddSingleton(TimeProvider.System);
+
+        // Regelbasierte Varianten sind immer registriert: als Standard und als Rueckfall der KI.
+        services.AddScoped<HeuristicResumeProfileExtractor>();
+        services.AddScoped<HeuristicJobMatchAnalyzer>();
+        services.AddScoped<OllamaResumeProfileExtractor>();
+        services.AddScoped<OllamaJobMatchAnalyzer>();
+        services.AddHttpClient<OllamaClient>((provider, client) =>
+        {
+            var ai = provider.GetRequiredService<IOptions<AiOptions>>().Value;
+            client.BaseAddress = new Uri(ai.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(5, ai.TimeoutSeconds));
+        });
+
+        services.AddScoped<IResumeProfileExtractor>(provider => UsesOllama(provider)
+            ? provider.GetRequiredService<OllamaResumeProfileExtractor>()
+            : provider.GetRequiredService<HeuristicResumeProfileExtractor>());
+        services.AddScoped<IJobMatchAnalyzer>(provider => UsesOllama(provider)
+            ? provider.GetRequiredService<OllamaJobMatchAnalyzer>()
+            : provider.GetRequiredService<HeuristicJobMatchAnalyzer>());
+
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IReminderService, ReminderService>();
@@ -45,4 +66,11 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>Die lokale KI wird nur genutzt, wenn sie aktiviert und Ollama als Anbieter gewaehlt ist.</summary>
+    public static bool UsesOllama(AiOptions options) =>
+        options.Enabled && string.Equals(options.Provider, OllamaJobMatchAnalyzer.ProviderName, StringComparison.OrdinalIgnoreCase);
+
+    private static bool UsesOllama(IServiceProvider provider) =>
+        UsesOllama(provider.GetRequiredService<IOptions<AiOptions>>().Value);
 }

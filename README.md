@@ -109,7 +109,10 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 | `Storage:UploadRoot` | `Storage__UploadRoot` | `uploads` | Ablage für Benutzerdokumente |
 | `Storage:MaxFileSizeBytes` | `Storage__MaxFileSizeBytes` | `10485760` | Maximale Dateigröße (10 MB) |
 | `Ai:Enabled` | `Ai__Enabled` | `false` | Schaltet externe KI-Anbieter frei. Match-Analyse und Anschreiben laufen ohne KI regelbasiert. |
-| `Ai:Provider` | `Ai__Provider` | `OpenAI` | KI-Anbieter |
+| `Ai:Provider` | `Ai__Provider` | `openai` | KI-Anbieter; umgesetzt ist `ollama` (lokal) |
+| `Ai:Model` | `Ai__Model` | – | Modellname, z. B. `qwen2.5:3b` |
+| `Ai:BaseUrl` | `Ai__BaseUrl` | `http://localhost:11434` | Adresse des KI-Anbieters |
+| `Ai:TimeoutSeconds` | `Ai__TimeoutSeconds` | `120` | Danach greift die regelbasierte Analyse |
 | `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |
 | `Ai:DailyRequestLimitPerUser` | `Ai__DailyRequestLimitPerUser` | `25` | Kostenbremse pro Benutzer und Tag |
 
@@ -127,6 +130,30 @@ Frontend-Variablen für Vite:
 # frontend/.env.local (optional)
 VITE_API_PROXY_TARGET=http://localhost:5042
 ```
+
+## Lokale KI mit Ollama
+
+Lebenslauf-Auslesen und Match-Analyse können ein lokales Sprachmodell nutzen. Das ist kostenlos,
+und Lebensläufe verlassen den eigenen Rechner nicht.
+
+```bash
+winget install --id Ollama.Ollama -e
+ollama pull qwen2.5:3b
+```
+
+In `appsettings.Development.json` ist die lokale KI bereits aktiviert (`Enabled: true`,
+`Provider: ollama`, `Model: qwen2.5:3b`, `BaseUrl: http://127.0.0.1:11434`). In Produktion bleibt sie
+standardmäßig aus.
+
+* **Score bleibt regelbasiert**: Die KI formuliert Zusammenfassung, Empfehlungen und Lernthemen und
+  findet weitere Anforderungen. Der Score wird immer mit derselben nachvollziehbaren Formel berechnet.
+* **Abgesichert**: Skills und Anforderungen werden nur übernommen, wenn sie wörtlich im Lebenslauf bzw.
+  in der Stellenbeschreibung stehen. Zusammenfassungen, die Abgedecktes als fehlend darstellen, und
+  Empfehlungen, fehlende Skills anzugeben, werden verworfen.
+* **Automatischer Rückfall**: Ist Ollama nicht erreichbar, zu langsam, liefert ungültiges JSON oder ist das
+  Tageslimit erreicht, wird regelbasiert gearbeitet. `GET /api/ai/status` zeigt den aktuellen Zustand.
+* **Dauer** (RTX 3050 Ti, 4 GB): CV etwa 10–13 s, Analyse etwa 5 s. Der allererste Aufruf nach dem
+  Start lädt das Modell und dauert deutlich länger.
 
 ## Build und Tests
 
