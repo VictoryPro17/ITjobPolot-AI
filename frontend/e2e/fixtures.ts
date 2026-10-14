@@ -46,12 +46,16 @@ function today() {
 }
 
 /** Legt einen API-Client mit frischem, angemeldetem Konto an. */
-export async function registerUser(baseURL: string, firstName = "Erika"): Promise<TestUser> {
+export async function registerUser(
+  baseURL: string,
+  firstName = "Erika",
+  options: { email?: string; lastName?: string } = {},
+): Promise<TestUser> {
   const api = await playwrightRequest.newContext({ baseURL });
-  const email = uniqueEmail();
+  const email = options.email ?? uniqueEmail();
 
   const response = await api.post("/api/auth/register", {
-    data: { email, password: TEST_PASSWORD, firstName, lastName: "Test" },
+    data: { email, password: TEST_PASSWORD, firstName, lastName: options.lastName ?? "Test" },
   });
   expect(response.status(), `Registrierung fehlgeschlagen: ${await response.text()}`).toBe(201);
 

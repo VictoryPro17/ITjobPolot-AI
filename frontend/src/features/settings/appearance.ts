@@ -10,7 +10,7 @@ import { updateProfile, type CurrentUser } from "@/features/auth/api";
  * Sendet die Darstellung zusammen mit den *gespeicherten* Profilwerten, damit ungespeicherte
  * Eingaben aus dem Profilformular nicht versehentlich mitgespeichert werden.
  */
-function appearanceRequest(user: CurrentUser, change: { themePreference?: ThemePreference; accentColor?: AccentColor }) {
+function appearanceRequest(user: CurrentUser, appearance: { themePreference: ThemePreference; accentColor: AccentColor }) {
   return {
     firstName: user.firstName ?? null,
     lastName: user.lastName ?? null,
@@ -21,26 +21,32 @@ function appearanceRequest(user: CurrentUser, change: { themePreference?: ThemeP
     educationSummary: user.educationSummary ?? null,
     resumeText: user.resumeText ?? null,
     skills: user.skills,
-    themePreference: change.themePreference ?? null,
-    accentColor: change.accentColor ?? null,
+    themePreference: appearance.themePreference,
+    accentColor: appearance.accentColor,
   };
 }
 
-/** Wendet eine Darstellungsaenderung sofort an und speichert sie im Konto. */
+/**
+ * Wendet eine Darstellungsaenderung sofort an und speichert sie im Konto. Jede Anfrage enthaelt
+ * Modus *und* Akzent, und die Anfragen laufen nacheinander (gemeinsamer Scope). So kann eine
+ * schnelle zweite Aenderung die erste nicht mit einem veralteten Wert ueberschreiben.
+ */
 export function useSaveAppearance() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { setPreference, setAccent } = useTheme();
+  const { preference, accent, setPreference, setAccent } = useTheme();
 
   const mutation = useMutation({
-    mutationFn: (change: { themePreference?: ThemePreference; accentColor?: AccentColor }) => updateProfile(appearanceRequest(user!, change)),
+    scope: { id: "appearance" },
+    mutationFn: (appearance: { themePreference: ThemePreference; accentColor: AccentColor }) => updateProfile(appearanceRequest(user!, appearance)),
     onSuccess: (updated) => queryClient.setQueryData(["auth", "me"], updated),
   });
 
   function save(change: { themePreference?: ThemePreference; accentColor?: AccentColor }) {
-    if (change.themePreference) setPreference(change.themePreference);
-    if (change.accentColor) setAccent(change.accentColor);
-    if (user) mutation.mutate(change);
+    const next = { themePreference: change.themePreference ?? preference, accentColor: change.accentColor ?? accent };
+    setPreference(next.themePreference);
+    setAccent(next.accentColor);
+    if (user) mutation.mutate(next);
   }
 
   return { save, isError: mutation.isError };
