@@ -1,40 +1,132 @@
+<div align="center">
+
+<img src="frontend/public/favicon.svg" width="56" alt="">
+
 # JobPilot AI
 
-Intelligenter Bewerbungsmanager – eine Full-Stack-Webanwendung zur Verwaltung, Analyse und
-Auswertung von Bewerbungen. Die Anwendung ersetzt Excel-Listen durch ein modernes Dashboard,
-ein Kanban-Board und optionale KI-Unterstützung bei Stellenanalyse und Anschreiben.
+Bewerbungsmanager mit Dashboard, Kanban-Board und optionaler lokaler KI-Unterstützung.
 
-> Entwicklungsstand: **Phase 1 abgeschlossen** (Projektgrundlage, Datenbank, API-Gerüst, Frontend-Gerüst).
+</div>
 
-## Technologie-Stack
+<img src="docs/screenshots/dashboard.png" width="100%" alt="Dashboard von JobPilot AI">
 
-| Bereich       | Technologien |
-|---------------|--------------|
-| Backend       | .NET 10, ASP.NET Core Web API, Entity Framework Core 10, ASP.NET Core Identity, Serilog |
-| Datenbank     | PostgreSQL 17 (Docker) |
-| Frontend      | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, Recharts, Lucide |
-| Tests         | xUnit |
-| Werkzeuge     | Visual Studio 2026, Docker Compose, dotnet-ef |
+## Überblick
 
-## Projektstruktur
+JobPilot AI ist eine Full-Stack-Webanwendung zur Verwaltung, Analyse und Auswertung von Bewerbungen.
+Sie ersetzt Excel-Listen durch ein Dashboard, ein Kanban-Board, eine Detailseite pro Bewerbung und
+Statistiken. Match-Analyse und Anschreiben können optional von einem lokalen Sprachmodell (Ollama)
+unterstützt werden; ohne KI arbeitet die Anwendung regelbasiert. Das Projekt richtet sich an
+Bewerbende, die ihren Prozess strukturiert verfolgen möchten, und dient zugleich als Portfolio-Projekt
+mit einem ASP.NET-Core-10-Backend in Clean Architecture und einem React-19-Frontend.
 
+| Bereich   | Technologien |
+|-----------|--------------|
+| Backend   | .NET 10, ASP.NET Core Web API, Entity Framework Core 10, ASP.NET Core Identity, Serilog |
+| Datenbank | PostgreSQL 17 (Docker) |
+| Frontend  | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, Recharts, Lucide |
+| Tests     | xUnit, Playwright |
+| Werkzeuge | Visual Studio 2026, Docker Compose, dotnet-ef |
+
+## Funktionen
+
+### Bewerbungen verwalten
+
+Bewerbungen lassen sich anlegen, filtern, durchsuchen und seitenweise durchblättern. Die Detailseite
+bündelt pro Bewerbung Eckdaten, eine Zeitleiste mit Notizen, den Statusverlauf, Dokumente und
+Erinnerungen.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/bewerbungen.png" width="100%" alt="Liste der Bewerbungen mit Filtern"><br><sub>Liste mit Filtern und Suche</sub></td>
+    <td width="50%"><img src="docs/screenshots/detail.png" width="100%" alt="Detailseite einer Bewerbung"><br><sub>Detailseite einer Bewerbung</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/detail-aktivitaet.png" width="100%" alt="Aktivität mit Notizen-Zeitleiste und Erinnerungen"><br><sub>Aktivität: Notizen-Zeitleiste, Statusverlauf, Erinnerungen</sub></td>
+    <td width="50%"><img src="docs/screenshots/detail-dunkel.png" width="100%" alt="Detailseite im dunklen Modus"><br><sub>Detailseite im dunklen Modus</sub></td>
+  </tr>
+</table>
+
+### Kanban-Board
+
+Das Board zeigt die Bewerbungen nach Status in Spalten. Karten lassen sich per Drag and Drop zwischen
+den Spalten verschieben oder über den Status auf der Karte ändern. Jede Spalte lädt ihre Einträge
+seitenweise nach; die Karten gibt es in einer kompakten und einer detaillierten Ansicht.
+
+<img src="docs/screenshots/kanban.png" width="100%" alt="Kanban-Board mit Statusspalten">
+
+### KI-Analyse und Anschreiben
+
+Die Match-Analyse vergleicht Profil und Stellenbeschreibung und liefert Score, passende und fehlende
+Skills sowie Empfehlungen; zusätzlich lassen sich Anschreiben erzeugen. Ein lokales Ollama-Modell ist
+optional, ohne KI greift eine regelbasierte Analyse. Der Score wird in jedem Fall regelbasiert
+berechnet (siehe [Lokale KI mit Ollama](#lokale-ki-mit-ollama)).
+
+<img src="docs/screenshots/detail-ki.png" width="100%" alt="Match-Analyse mit Score, Skills und Empfehlungen">
+
+### Statistiken
+
+Auswertungen zu Bewerbungsquote, Gesprächs- und Zusagequote, durchschnittlicher Antwortzeit,
+Bewerbungstrichter, Wochenaktivität, Monatsverlauf und Statusverteilung.
+
+<img src="docs/screenshots/statistiken.png" width="100%" alt="Statistikseite mit Kennzahlen und Diagrammen">
+
+### Darstellung
+
+Die Oberfläche unterstützt die Modi Hell, Dunkel und System sowie die Akzentfarben Blau, Grün und
+Lila. Die Auswahl wird im Benutzerkonto gespeichert und gilt damit auch auf anderen Geräten.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard-dunkel.png" width="100%" alt="Dashboard im dunklen Modus"><br><sub>Dunkler Modus</sub></td>
+    <td width="50%"><img src="docs/screenshots/einstellungen-darstellung.png" width="100%" alt="Einstellungen zur Darstellung"><br><sub>Einstellungen: Modus und Akzentfarbe</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard-purple.png" width="100%" alt="Dashboard mit Akzentfarbe Lila"><br><sub>Akzentfarbe Lila</sub></td>
+    <td width="50%"><img src="docs/screenshots/dashboard-green.png" width="100%" alt="Dashboard mit Akzentfarbe Grün"><br><sub>Akzentfarbe Grün</sub></td>
+  </tr>
+</table>
+
+### Mobil
+
+Die Oberfläche ist für schmale Bildschirme ausgelegt.
+
+<p align="center">
+  <img src="docs/screenshots/mobil-dashboard.png" width="280" alt="Dashboard in Handybreite">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobil-kanban.png" width="280" alt="Kanban-Board in Handybreite">
+</p>
+
+### Datenschutz
+
+Alle Daten eines Benutzers lassen sich als JSON exportieren (Auskunft und Datenübertragbarkeit nach
+Art. 15 und 20 DSGVO). Das Konto kann endgültig gelöscht werden, einschließlich aller hochgeladenen
+Dateien.
+
+## Architektur
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React + Vite"] -->|"/api (Vite-Proxy)"| Api["ASP.NET Core API"]
+    Api --> App["Application"]
+    App --> Infra["Infrastructure"]
+    Infra --> DB[("PostgreSQL")]
+    Infra -.->|optional| Ollama["Ollama (lokale KI)"]
+    Infra --> Files["Lokale Dateiablage"]
 ```
-/
-  src/
-    JobPilot.Domain/          Entitaeten, Enums, Domaenenregeln (keine Abhaengigkeiten)
-    JobPilot.Application/     Abstraktionen, Optionen, Anwendungslogeln
-    JobPilot.Infrastructure/  EF Core, PostgreSQL, Migrations, Seeding
-    JobPilot.Api/             Controller, Identity, OpenAPI, Serilog, DI-Komposition
-  tests/
-    JobPilot.Tests/           xUnit-Tests
-  frontend/                   React + TypeScript + Vite
-  docker-compose.yml          PostgreSQL 17
-```
 
-### Architektur in Kurzform
+| Projekt                     | Aufgabe |
+|-----------------------------|---------|
+| `src/JobPilot.Domain`         | Entitäten, Enums, Domänenregeln (keine Abhängigkeiten) |
+| `src/JobPilot.Application`    | Abstraktionen, Optionen, Anwendungslogik |
+| `src/JobPilot.Infrastructure` | EF Core, PostgreSQL, Migrations, Seeding |
+| `src/JobPilot.Api`            | Controller, Identity, OpenAPI, Serilog, DI-Komposition |
+| `tests/JobPilot.Tests`        | xUnit-Tests |
+| `frontend`                    | React + TypeScript + Vite |
+
+Architekturentscheidungen:
 
 * **Clean Architecture light**: `Domain` -> `Application` -> `Infrastructure` -> `Api`.
-  Die Abhaengigkeiten zeigen ausschließlich nach innen.
+  Die Abhängigkeiten zeigen ausschließlich nach innen.
 * **Kein Repository-Pattern** über EF Core. Der `DbContext` ist bereits Unit of Work und Repository.
 * **Mandantentrennung**: Jede nutzerbezogene Entität erbt von `OwnedEntityBase` und besitzt eine
   `UserId`. Die ID stammt immer aus den validierten Claims (`ICurrentUser`), niemals aus dem Request-Body.
@@ -46,14 +138,14 @@ ein Kanban-Board und optionale KI-Unterstützung bei Stellenanalyse und Anschrei
 * **Lebensläufe** können als PDF, DOCX, TXT oder MD hochgeladen werden. Der Upload liefert einen
   Profilvorschlag, der erst nach Prüfung über „Profil speichern“ übernommen wird.
 
-## Voraussetzungen
+## Schnellstart
+
+### Voraussetzungen
 
 * [.NET SDK 10.0](https://dotnet.microsoft.com/download) (getestet mit 10.0.401)
 * [Node.js 20+](https://nodejs.org) (getestet mit 23.3.0)
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) für PostgreSQL
 * EF-Core-Werkzeug: `dotnet tool update --global dotnet-ef --version 10.0.*`
-
-## Einrichtung
 
 ### 1. Datenbank starten
 
@@ -97,7 +189,7 @@ Die Oberfläche läuft auf `http://localhost:5173`. Der Vite-Dev-Proxy leitet al
 `/api` an die ASP.NET Core API weiter. Dadurch teilen sich Frontend und API im Browser dieselbe
 Origin, was die Cookie-Authentifizierung ohne SameSite-Sonderregeln ermöglicht.
 
-## Konfiguration und Umgebungsvariablen
+## Konfiguration
 
 Die Konfiguration erfolgt über `src/JobPilot.Api/appsettings.json`. Werte lassen sich per
 Umgebungsvariable überschreiben (`__` trennt die Ebenen).
@@ -158,7 +250,9 @@ standardmäßig aus.
 * **Dauer** (RTX 3050 Ti, 4 GB): CV etwa 10–13 s, Analyse etwa 5 s. Der allererste Aufruf nach dem
   Start lädt das Modell und dauert deutlich länger.
 
-## Build und Tests
+## Tests
+
+### Build, Backend und Frontend
 
 ```bash
 dotnet build "ITjobPolot AI.slnx"
@@ -176,7 +270,8 @@ und Handybreite. Jeder Test legt ein eigenes Konto an und löscht es am Ende wie
 cd frontend && npx playwright install chromium
 
 # API mit erhöhten Limits starten (sonst greift der Missbrauchsschutz)
-RateLimiting__GlobalPermitLimit=100000 RateLimiting__AuthPermitLimit=1000 \n  dotnet run --project src/JobPilot.Api --urls http://localhost:5042
+RateLimiting__GlobalPermitLimit=100000 RateLimiting__AuthPermitLimit=1000 \
+  dotnet run --project src/JobPilot.Api --urls http://localhost:5042
 
 # Tests (Vite startet bei Bedarf automatisch)
 cd frontend && npm run e2e        # alle Projekte
@@ -187,13 +282,23 @@ npm run e2e:ui                    # interaktiver Modus
 `e2e/visual.spec.ts` legt Screenshots der Hauptseiten und einen Barrierefreiheitsbericht (axe) in
 `frontend/e2e-artifacts/` ab. Der Bericht lässt den Lauf nicht scheitern.
 
-## Sicherheitsmaßnahmen
+### Screenshots der Dokumentation
+
+```bash
+cd frontend && npm run docs:screenshots
+```
+
+Das Skript erzeugt die Bilder in `docs/screenshots/` neu und verwendet dafür fiktive Demodaten. Wie bei
+den Browser-Tests muss die API mit erhöhten Rate-Limits laufen (siehe oben).
+
+## Sicherheit
 
 * ASP.NET Core Identity mit Passwortrichtlinie (mindestens 10 Zeichen) und Kontosperre nach
   fünf Fehlversuchen für 15 Minuten.
 * `HttpOnly`-, `Secure`- und `SameSite`-Cookies.
 * Serverseitige Autorisierung; alle Abfragen filtern zwingend nach der `UserId` aus den Claims.
-* Rate Limiting (120 Anfragen pro Minute und IP).
+* Rate Limiting pro IP: 120 Anfragen pro Minute, für Anmeldung und Registrierung 10 pro Minute
+  (über `RateLimiting:*` konfigurierbar).
 * Restriktive CORS-Konfiguration auf konfigurierte Origins.
 * Zentrale Fehler-Middleware, die keine internen Details nach außen gibt.
 * Dateiuploads (PDF, DOCX, TXT, MD, PNG, JPG) mit Größenbegrenzung, Prüfung der Dateisignatur
@@ -201,16 +306,33 @@ npm run e2e:ui                    # interaktiver Modus
   Pfadmanipulation. Der Content-Type wird serverseitig aus der Endung bestimmt.
 * Datenexport (JSON) und endgültige Kontolöschung inklusive aller Dateien (DSGVO).
 
+## Projektstruktur
+
+```
+/
+  src/
+    JobPilot.Domain/          Entitäten, Enums, Domänenregeln (keine Abhängigkeiten)
+    JobPilot.Application/     Abstraktionen, Optionen, Anwendungslogik
+    JobPilot.Infrastructure/  EF Core, PostgreSQL, Migrations, Seeding
+    JobPilot.Api/             Controller, Identity, OpenAPI, Serilog, DI-Komposition
+  tests/
+    JobPilot.Tests/           xUnit-Tests
+  frontend/                   React + TypeScript + Vite
+    e2e/                      Playwright-Tests und Skript für Dokumentations-Screenshots
+  docs/screenshots/           Screenshots für dieses README
+  docker-compose.yml          PostgreSQL 17
+```
+
 ## Entwicklungsphasen
 
 | Phase | Inhalt | Status |
 |-------|--------|--------|
 | 1 | Projektgrundlage, Datenbank, API-Gerüst, Frontend-Gerüst | abgeschlossen |
-| 2 | Bewerbungsverwaltung (CRUD, Liste, Formular, Filter, Suche, Paging) | offen |
-| 3 | Dashboard, Benutzerverwaltung, Kanban-Board, Basisstatistiken | offen |
-| 4 | KI-Stellenanalyse und KI-Anschreiben | teilweise (regelbasiert, externe KI vorbereitet) |
+| 2 | Bewerbungsverwaltung (CRUD, Liste, Formular, Filter, Suche, Paging) | abgeschlossen |
+| 3 | Dashboard, Benutzerverwaltung, Kanban-Board, Basisstatistiken | abgeschlossen |
+| 4 | KI-Stellenanalyse und KI-Anschreiben | abgeschlossen (regelbasiert, optional lokale KI über Ollama) |
 | 5 | Dokumente, Erinnerungen, erweiterte Statistiken, Einstellungen | abgeschlossen |
-| 6 | Tests, Security-Review, Performance, Docker, Deployment, Doku | offen |
+| 6 | Tests, Security-Review, Performance, Docker, Deployment, Doku | teilweise (Unit- und Browser-Tests, Code-Splitting, Doku; Deployment offen) |
 
 ## Lizenz
 

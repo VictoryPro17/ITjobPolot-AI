@@ -6,6 +6,8 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:5173";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Doku-Screenshots laufen separat (playwright.docs.config.ts).
+  testIgnore: "**/docs-screenshots.spec.ts",
   outputDir: "./test-results",
   fullyParallel: true,
   workers: process.env.E2E_WORKERS ? Number(process.env.E2E_WORKERS) : 4,
