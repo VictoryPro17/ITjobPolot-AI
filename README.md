@@ -107,10 +107,11 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 | `ConnectionStrings:Default` | `ConnectionStrings__Default` | lokale Docker-Datenbank | PostgreSQL-Verbindung |
 | `App:CorsOrigins` | `App__CorsOrigins__0` | `http://localhost:5173` | Erlaubte Frontend-Origins |
 | `Storage:UploadRoot` | `Storage__UploadRoot` | `uploads` | Ablage für Benutzerdokumente |
-| `Storage:MaxFileSizeBytes` | `Storage__MaxFileSizeBytes` | `10485760` | Maximale Dateigröße (10 MB) |
+| `Storage:MaxFileSizeInBytes` | `Storage__MaxFileSizeInBytes` | `10485760` | Maximale Dateigröße (10 MB) |
+| `Storage:MaxDocumentsPerUser` | `Storage__MaxDocumentsPerUser` | `100` | Maximale Anzahl Dokumente pro Benutzer |
 | `Ai:Enabled` | `Ai__Enabled` | `false` | Schaltet externe KI-Anbieter frei. Match-Analyse und Anschreiben laufen ohne KI regelbasiert. |
 | `Ai:Provider` | `Ai__Provider` | `openai` | KI-Anbieter; umgesetzt ist `ollama` (lokal) |
-| `Ai:Model` | `Ai__Model` | – | Modellname, z. B. `qwen2.5:3b` |
+| `Ai:Model` | `Ai__Model` | `gpt-4o-mini` | Modellname; für Ollama z. B. `qwen2.5:3b` |
 | `Ai:BaseUrl` | `Ai__BaseUrl` | `http://localhost:11434` | Adresse des KI-Anbieters |
 | `Ai:TimeoutSeconds` | `Ai__TimeoutSeconds` | `120` | Danach greift die regelbasierte Analyse |
 | `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |

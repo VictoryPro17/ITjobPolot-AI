@@ -15,6 +15,20 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Grosse, selten geaenderte Bibliotheken in eigene Dateien, damit der Browser
+        // sie zwischen Deployments weiter aus dem Cache nutzen kann.
+        codeSplitting: {
+          groups: [
+            { name: "react", test: /node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/ },
+            { name: "query", test: /node_modules[\/]@tanstack[\/]/ },
+          ],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

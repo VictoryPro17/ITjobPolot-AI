@@ -41,5 +41,21 @@ public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task InvalidInput_ReturnsFieldErrorsWithoutStackTrace()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/auth/register", new { email = "", password = "" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"errors\"", body);
+        // Eingabefehler duerfen auch in der Entwicklung keine Interna (Stacktrace, Pfade) zeigen.
+        Assert.DoesNotContain("   at ", body);
+        Assert.DoesNotContain("Exception", body);
+    }
+
     private sealed record HealthPayload(string Status, string Service, DateTimeOffset Timestamp, bool? DatabaseConnected);
 }

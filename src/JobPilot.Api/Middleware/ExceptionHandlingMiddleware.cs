@@ -29,23 +29,6 @@ public class ExceptionHandlingMiddleware(
 
     private async Task HandleAsync(HttpContext context, Exception ex)
     {
-        // Erwartete Fachfehler sind kein Betriebsproblem und werden niedriger protokolliert.
-        if (ex is NotFoundException or ForbiddenException or ConflictException or ValidationFailedException)
-        {
-            logger.LogInformation("Abgewiesene Anfrage {Method} {Path}: {Message}",
-                context.Request.Method, context.Request.Path, ex.Message);
-        }
-        else
-        {
-            logger.LogError(ex, "Unbehandelte Ausnahme bei {Method} {Path}",
-                context.Request.Method, context.Request.Path);
-        }
-
-        if (context.Response.HasStarted)
-        {
-            throw ex;
-        }
-
         var (status, title) = ex switch
         {
             ValidationFailedException => (HttpStatusCode.BadRequest, "Die Eingaben sind ungültig."),
@@ -58,6 +41,25 @@ public class ExceptionHandlingMiddleware(
             _ => (HttpStatusCode.InternalServerError, "Es ist ein unerwarteter Fehler aufgetreten.")
         };
 
+        var isServerError = (int)status >= 500;
+
+        // Erwartete Fehler (4xx) sind kein Betriebsproblem: ohne Stacktrace und niedriger protokolliert.
+        if (isServerError)
+        {
+            logger.LogError(ex, "Unbehandelte Ausnahme bei {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+        }
+        else
+        {
+            logger.LogInformation("Abgewiesene Anfrage {Method} {Path} mit {StatusCode}: {Message}",
+                context.Request.Method, context.Request.Path, (int)status, ex.Message);
+        }
+
+        if (context.Response.HasStarted)
+        {
+            throw ex;
+        }
+
         ProblemDetails problem = ex is ValidationFailedException validation
             ? new ValidationProblemDetails(validation.Errors.ToDictionary(e => e.Key, e => e.Value))
             : new ProblemDetails();
@@ -66,11 +68,12 @@ public class ExceptionHandlingMiddleware(
         problem.Title = title;
         problem.Instance = context.Request.Path;
 
-        // Fachfehler duerfen ihre Meldung zeigen; technische Details nur in der Entwicklung.
+        // Fachfehler duerfen ihre Meldung zeigen. Den Stacktrace gibt es nur in der
+        // Entwicklung und nur bei echten Serverfehlern; Eingabefehler brauchen ihn nicht.
         problem.Detail = ex switch
         {
             NotFoundException or ForbiddenException or ConflictException => ex.Message,
-            _ when environment.IsDevelopment() => ex.ToString(),
+            _ when isServerError && environment.IsDevelopment() => ex.ToString(),
             _ => null
         };
 

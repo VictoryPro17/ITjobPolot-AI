@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Menu } from "lucide-react";
 import { Outlet } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getAvatarUrl } from "@/features/auth/api";
 
@@ -37,10 +38,22 @@ export function AppLayout() {
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl animate-fade-in">
-            <Outlet />
+            <Suspense fallback={<PageFallback />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+/** Platzhalter, waehrend eine Seite nachgeladen wird; Navigation und Kopfzeile bleiben stehen. */
+function PageFallback() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Seite wird geladen">
+      <Skeleton className="h-10 w-64" />
+      <Skeleton className="h-64" />
     </div>
   );
 }

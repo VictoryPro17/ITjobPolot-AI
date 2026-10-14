@@ -11,6 +11,7 @@ using JobPilot.Infrastructure;
 using JobPilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using Serilog.Events;
 
 const string CorsPolicyName = "JobPilotFrontend";
 const string AuthRateLimitPolicy = "auth";
@@ -98,8 +99,13 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Das Request-Log liegt aussen, damit es den endgueltigen Statuscode der
+// Fehlerbehandlung sieht (z. B. 400 statt einer rohen Ausnahme als 500).
+app.UseSerilogRequestLogging(options => options.GetLevel = (httpContext, _, exception) =>
+    exception is not null || httpContext.Response.StatusCode >= 500 ? LogEventLevel.Error
+    : httpContext.Response.StatusCode >= 400 ? LogEventLevel.Warning
+    : LogEventLevel.Information);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {

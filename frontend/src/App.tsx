@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -6,15 +7,18 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
-import { ApplicationsPage } from "@/pages/ApplicationsPage";
-import { ApplicationDetailPage } from "@/pages/ApplicationDetailPage";
-import { ApplicationFormPage } from "@/pages/ApplicationFormPage";
-import { KanbanPage } from "@/pages/KanbanPage";
-import { StatisticsPage } from "@/pages/StatisticsPage";
-import { SettingsPage } from "@/pages/SettingsPage";
-import { AiAssistantPage } from "@/pages/AiAssistantPage";
-import { DocumentsPage } from "@/pages/DocumentsPage";
-import { RemindersPage } from "@/pages/RemindersPage";
+
+// Seiten ausser Anmeldung und Dashboard werden erst beim ersten Aufruf geladen,
+// damit z. B. die Diagramm-Bibliothek nur auf der Statistikseite ankommt.
+const ApplicationsPage = lazy(() => import("@/pages/ApplicationsPage").then((module) => ({ default: module.ApplicationsPage })));
+const ApplicationDetailPage = lazy(() => import("@/pages/ApplicationDetailPage").then((module) => ({ default: module.ApplicationDetailPage })));
+const ApplicationFormPage = lazy(() => import("@/pages/ApplicationFormPage").then((module) => ({ default: module.ApplicationFormPage })));
+const KanbanPage = lazy(() => import("@/pages/KanbanPage").then((module) => ({ default: module.KanbanPage })));
+const StatisticsPage = lazy(() => import("@/pages/StatisticsPage").then((module) => ({ default: module.StatisticsPage })));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const AiAssistantPage = lazy(() => import("@/pages/AiAssistantPage").then((module) => ({ default: module.AiAssistantPage })));
+const DocumentsPage = lazy(() => import("@/pages/DocumentsPage").then((module) => ({ default: module.DocumentsPage })));
+const RemindersPage = lazy(() => import("@/pages/RemindersPage").then((module) => ({ default: module.RemindersPage })));
 
 export default function App() {
   return (
