@@ -62,3 +62,54 @@ function defaultMessage(status: number): string {
   if (status >= 500) return "Der Server ist derzeit nicht erreichbar.";
   return `Die Anfrage ist fehlgeschlagen (HTTP ${status}).`;
 }
+
+/** Laedt eine Datei (z. B. Export oder Dokument) als Blob herunter. */
+export async function apiDownload(path: string, init: RequestInit = {}): Promise<{ blob: Blob; fileName: string }> {
+  const { headers, ...rest } = init;
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...rest,
+    credentials: "include",
+    headers: {
+      Accept: "*/*",
+      ...headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(response.status, await readErrorMessage(response));
+  }
+
+  return {
+    blob: await response.blob(),
+    fileName: parseFileName(response.headers.get("Content-Disposition")),
+  };
+}
+
+function parseFileName(contentDisposition: string | null): string {
+  if (!contentDisposition) return "download";
+
+  const encoded = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(contentDisposition);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Fallback auf den einfachen filename-Parameter
+    }
+  }
+
+  const plain = /filename\s*=\s*"?([^";]+)"?/i.exec(contentDisposition);
+  return plain ? plain[1].trim() : "download";
+}
+
+/** Speichert einen Blob ueber einen temporaeren Download-Link. */
+export function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

@@ -3,7 +3,6 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
-import { PlaceholderPage } from "@/pages/PlaceholderPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
@@ -13,6 +12,8 @@ import { KanbanPage } from "@/pages/KanbanPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AiAssistantPage } from "@/pages/AiAssistantPage";
+import { DocumentsPage } from "@/pages/DocumentsPage";
+import { RemindersPage } from "@/pages/RemindersPage";
 
 export default function App() {
   return (
@@ -27,27 +28,9 @@ export default function App() {
         <Route path="bewerbungen/:id" element={<ApplicationFormPage />} />
         <Route path="board" element={<KanbanPage />} />
         <Route path="ki-assistent" element={<AiAssistantPage />} />
-        <Route
-          path="dokumente"
-          element={
-            <PlaceholderPage
-              title="Dokumente"
-              description="Lebensläufe, Anschreiben und Zeugnisse sicher verwalten."
-              phase="Phase 5"
-            />
-          }
-        />
+        <Route path="dokumente" element={<DocumentsPage />} />
         <Route path="statistiken" element={<StatisticsPage />} />
-        <Route
-          path="erinnerungen"
-          element={
-            <PlaceholderPage
-              title="Erinnerungen"
-              description="Termine, Fristen und Nachfassaktionen im Blick behalten."
-              phase="Phase 5"
-            />
-          }
-        />
+        <Route path="erinnerungen" element={<RemindersPage />} />
         <Route path="einstellungen" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
         </Route>

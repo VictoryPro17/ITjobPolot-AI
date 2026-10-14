@@ -17,6 +17,7 @@ namespace JobPilot.Infrastructure.Services;
 public class JobApplicationService(
     JobPilotDbContext db,
     ICurrentUser currentUser,
+    TimeProvider timeProvider,
     ILogger<JobApplicationService> logger) : IJobApplicationService
 {
     /// <summary>Status, die als "offen" gelten.</summary>
@@ -106,7 +107,7 @@ public class JobApplicationService(
             ContactName = Normalize(request.ContactName),
             ContactEmail = Normalize(request.ContactEmail),
             ContactPhone = Normalize(request.ContactPhone),
-            InterviewAt = request.InterviewAt,
+            InterviewAt = request.InterviewAt?.ToUniversalTime(),
             InterviewLocation = Normalize(request.InterviewLocation)
         };
 
@@ -163,7 +164,7 @@ public class JobApplicationService(
         entity.ContactName = Normalize(request.ContactName);
         entity.ContactEmail = Normalize(request.ContactEmail);
         entity.ContactPhone = Normalize(request.ContactPhone);
-        entity.InterviewAt = request.InterviewAt;
+        entity.InterviewAt = request.InterviewAt?.ToUniversalTime();
         entity.InterviewLocation = Normalize(request.InterviewLocation);
 
         if (entity.Status != ApplicationStatus.Draft && entity.AppliedOn is null)
@@ -297,7 +298,12 @@ public class JobApplicationService(
             {
                 AppliedOn = a.AppliedOn!.Value,
                 a.Status,
-                ReachedStatuses = a.StatusHistory.Select(history => history.ToStatus).ToList()
+                ReachedStatuses = a.StatusHistory.Select(history => history.ToStatus).ToList(),
+                FirstResponseAt = a.StatusHistory
+                    .Where(history => history.ToStatus != ApplicationStatus.Draft && history.ToStatus != ApplicationStatus.Applied)
+                    .OrderBy(history => history.ChangedAt)
+                    .Select(history => (DateTimeOffset?)history.ChangedAt)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
@@ -334,6 +340,45 @@ public class JobApplicationService(
                 group.Count(a => a.IsRejected)))
             .ToList();
 
+        var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+
+        // Statusverteilung ueber alle Bewerbungen, auch Entwuerfe ohne Bewerbungsdatum.
+        var statusCounts = await db.JobApplications
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .GroupBy(a => a.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToListAsync(cancellationToken);
+
+        var statusDistribution = Enum.GetValues<ApplicationStatus>()
+            .Select(status => new StatusCountDto(status, statusCounts.FirstOrDefault(s => s.Status == status)?.Count ?? 0))
+            .ToList();
+
+        var responseDays = rows
+            .Where(row => row.FirstResponseAt is not null)
+            .Select(row => Math.Max(0, DateOnly.FromDateTime(row.FirstResponseAt!.Value.UtcDateTime).DayNumber - row.AppliedOn.DayNumber))
+            .ToList();
+
+        // Je Bewerbung zaehlt nur die juengste Analyse.
+        var analyses = await db.AiAnalyses
+            .AsNoTracking()
+            .Where(a => a.UserId == userId && a.JobApplicationId != null)
+            .Select(a => new { a.JobApplicationId, a.MatchScore, a.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var latestScores = analyses
+            .GroupBy(a => a.JobApplicationId)
+            .Select(group => group.OrderByDescending(a => a.CreatedAt).First().MatchScore)
+            .ToList();
+
+        var currentWeekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var weeklyActivity = Enumerable.Range(0, 12)
+            .Select(offset => currentWeekStart.AddDays(-7 * (11 - offset)))
+            .Select(weekStart => new WeeklyStatDto(
+                weekStart,
+                applications.Count(a => a.AppliedOn >= weekStart && a.AppliedOn < weekStart.AddDays(7))))
+            .ToList();
+
         return new StatisticsDto(
             total,
             interviews,
@@ -343,7 +388,12 @@ public class JobApplicationService(
             rate(interviews),
             rate(offers),
             rate(accepted),
-            monthlyData);
+            monthlyData,
+            statusDistribution,
+            responseDays.Count == 0 ? null : Math.Round(responseDays.Average(), 1),
+            latestScores.Count == 0 ? null : Math.Round(latestScores.Average(), 1),
+            applications.Count(a => a.AppliedOn >= today.AddDays(-30)),
+            weeklyActivity);
     }
 
     private const int InterviewStage = 2;

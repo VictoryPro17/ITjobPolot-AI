@@ -145,7 +145,10 @@ cd frontend && npm run build
 * Rate Limiting (120 Anfragen pro Minute und IP).
 * Restriktive CORS-Konfiguration auf konfigurierte Origins.
 * Zentrale Fehler-Middleware, die keine internen Details nach außen gibt.
-* Dateiuploads nur als PDF mit Größenbegrenzung (Phase 5).
+* Dateiuploads (PDF, DOCX, TXT, MD, PNG, JPG) mit Größenbegrenzung, Prüfung der Dateisignatur
+  gegen die Endung, Dublettenerkennung per SHA-256, Kontingent pro Benutzer und Schutz gegen
+  Pfadmanipulation. Der Content-Type wird serverseitig aus der Endung bestimmt.
+* Datenexport (JSON) und endgültige Kontolöschung inklusive aller Dateien (DSGVO).
 
 ## Entwicklungsphasen
 
@@ -154,8 +157,8 @@ cd frontend && npm run build
 | 1 | Projektgrundlage, Datenbank, API-Gerüst, Frontend-Gerüst | abgeschlossen |
 | 2 | Bewerbungsverwaltung (CRUD, Liste, Formular, Filter, Suche, Paging) | offen |
 | 3 | Dashboard, Benutzerverwaltung, Kanban-Board, Basisstatistiken | offen |
-| 4 | KI-Stellenanalyse und KI-Anschreiben | offen |
-| 5 | Dokumente, Erinnerungen, erweiterte Statistiken, Einstellungen | offen |
+| 4 | KI-Stellenanalyse und KI-Anschreiben | teilweise (regelbasiert, externe KI vorbereitet) |
+| 5 | Dokumente, Erinnerungen, erweiterte Statistiken, Einstellungen | abgeschlossen |
 | 6 | Tests, Security-Review, Performance, Docker, Deployment, Doku | offen |
 
 ## Lizenz

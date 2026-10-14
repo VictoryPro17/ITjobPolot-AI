@@ -64,8 +64,8 @@ export function getStatusLabel(status: ApplicationStatus) {
   return statusLabels[status];
 }
 
-export async function getApplications(params: { search: string; status: ApplicationStatus | ""; page: number }) {
-  const query = new URLSearchParams({ page: String(params.page), pageSize: "10", sortBy: "UpdatedAt", sortDescending: "true" });
+export async function getApplications(params: { search: string; status: ApplicationStatus | ""; page: number; pageSize?: number }) {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize ?? 10), sortBy: "UpdatedAt", sortDescending: "true" });
   if (params.search) query.set("search", params.search);
   if (params.status) query.set("status", params.status);
   return apiFetch<PagedApplications>(`/job-applications?${query}`);
@@ -118,6 +118,16 @@ export interface MonthlyStats {
   rejected: number;
 }
 
+export interface StatusCount {
+  status: ApplicationStatus;
+  count: number;
+}
+
+export interface WeeklyStat {
+  weekStart: string;
+  applied: number;
+}
+
 export interface Statistics {
   totalApplications: number;
   totalInterviews: number;
@@ -128,6 +138,11 @@ export interface Statistics {
   offerRate: number;
   acceptanceRate: number;
   monthlyData: MonthlyStats[];
+  statusDistribution: StatusCount[];
+  averageDaysToResponse: number | null;
+  averageMatchScore: number | null;
+  applicationsLast30Days: number;
+  weeklyActivity: WeeklyStat[];
 }
 
 export function getStatistics() {

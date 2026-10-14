@@ -1,4 +1,7 @@
 ﻿using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 using JobPilot.Api.Services;
 using JobPilot.Application.Abstractions;
 using JobPilot.Application.Auth;
@@ -28,6 +31,8 @@ public class AuthController(
     JobPilot.Infrastructure.Persistence.JobPilotDbContext db,
     ResumeParsingService resumeParsingService,
     IResumeProfileExtractor resumeProfileExtractor,
+    IFileStorage fileStorage,
+    IAccountService accountService,
     IOptions<StorageOptions> storageOptions,
     ILogger<AuthController> logger) : ControllerBase
 {
@@ -188,30 +193,16 @@ public class AuthController(
 
         var user = await GetCurrentUserAsync();
 
-        var uploadRoot = string.IsNullOrWhiteSpace(_storageOptions.UploadRoot)
-            ? "uploads"
-            : _storageOptions.UploadRoot;
-
-        var absoluteRoot = Path.IsPathRooted(uploadRoot)
-            ? uploadRoot
-            : Path.Combine(Directory.GetCurrentDirectory(), uploadRoot);
-
-        Directory.CreateDirectory(absoluteRoot);
-
-        var fileName = $"{Guid.CreateVersion7():N}{extension}";
-        var storagePath = Path.Combine(uploadRoot, fileName).Replace('\\', '/');
-        var fullPath = Path.Combine(absoluteRoot, fileName);
-
-        await System.IO.File.WriteAllBytesAsync(fullPath, bytes, cancellationToken);
+        var storagePath = await fileStorage.SaveAsync(bytes, extension, cancellationToken);
 
         try
         {
             db.UserDocuments.Add(new UserDocument
             {
                 UserId = user.Id,
-                FileName = file.FileName,
+                FileName = Path.GetFileName(file.FileName),
                 StoragePath = storagePath,
-                ContentType = file.ContentType ?? "application/octet-stream",
+                ContentType = FileSignature.ContentTypeFor(extension),
                 SizeInBytes = file.Length,
                 DocumentType = DocumentType.Resume,
                 Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
@@ -223,7 +214,7 @@ public class AuthController(
         catch
         {
             // Ohne Datenbankeintrag waere die Datei verwaist.
-            System.IO.File.Delete(fullPath);
+            fileStorage.Delete(storagePath);
             throw;
         }
 
@@ -267,6 +258,43 @@ public class AuthController(
 
         return NoContent();
     }
+
+    /// <summary>Exportiert alle eigenen Daten als JSON-Datei (ohne hochgeladene Dateien).</summary>
+    [HttpGet("export")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Export(CancellationToken cancellationToken)
+    {
+        var export = await accountService.ExportAsync(cancellationToken);
+        var content = JsonSerializer.SerializeToUtf8Bytes(export, ExportJsonOptions);
+
+        return File(content, "application/json", $"jobpilot-export-{export.ExportedAt:yyyyMMdd}.json");
+    }
+
+    /// <summary>Loescht das eigene Konto samt aller Daten und Dateien endgueltig.</summary>
+    [HttpDelete("account")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountRequest request, CancellationToken cancellationToken)
+    {
+        var user = await GetCurrentUserAsync();
+
+        if (!await userManager.CheckPasswordAsync(user, request.Password))
+        {
+            throw new ValidationFailedException(nameof(request.Password), "Das Passwort ist falsch.");
+        }
+
+        await accountService.DeleteAccountAsync(cancellationToken);
+        await signInManager.SignOutAsync();
+
+        return NoContent();
+    }
+
+    private static readonly JsonSerializerOptions ExportJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     private async Task<ApplicationUser> GetCurrentUserAsync() =>
         await userManager.GetUserAsync(User)

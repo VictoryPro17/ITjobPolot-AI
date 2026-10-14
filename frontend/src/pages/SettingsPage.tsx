@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, Circle, Gauge, KeyRound, Moon, Palette, Settings, Sun, UserRound } from "lucide-react";
+import { CheckCircle2, Circle, Download, Gauge, KeyRound, Moon, Palette, Settings, ShieldAlert, Sun, Trash2, UserRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Field } from "@/components/ui/Field";
 import { FileDropzone } from "@/components/ui/FileDropzone";
 import { Input } from "@/components/ui/Input";
@@ -21,7 +23,7 @@ import {
   uploadResume,
   type ResumeProfileSuggestion,
 } from "@/features/auth/api";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiDownload, apiFetch, saveBlob } from "@/lib/api";
 
 function parseSkills(value: string): string[] {
   return value
@@ -97,6 +99,7 @@ function isPasswordValid(value: string): boolean {
 export function SettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
   const [profile, setProfile] = useState<ProfileForm>({
@@ -120,6 +123,40 @@ export function SettingsPage() {
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => apiFetch<void>("/auth/account", { method: "DELETE", body: JSON.stringify({ password: deletePassword }) }),
+    onSuccess: () => {
+      queryClient.clear();
+      navigate("/anmelden", { replace: true });
+    },
+    onError: (error) => setDeleteError(error instanceof ApiError ? error.message : "Das Konto konnte nicht gelöscht werden."),
+  });
+
+  async function handleExport() {
+    setExportError("");
+    setIsExporting(true);
+    try {
+      const { blob, fileName } = await apiDownload("/auth/export");
+      saveBlob(blob, fileName);
+    } catch (error) {
+      setExportError(error instanceof ApiError ? error.message : "Der Datenexport ist fehlgeschlagen.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function closeDeleteDialog() {
+    setDeleteOpen(false);
+    setDeletePassword("");
+    setDeleteError("");
+  }
 
   useEffect(() => {
     if (user) {
@@ -507,8 +544,57 @@ export function SettingsPage() {
               </div>
             </CardBody>
           </Card>
+
+          <Card>
+            <CardHeader icon={ShieldAlert} title="Daten & Konto" description="Export und Löschung gemäß DSGVO." />
+            <CardBody className="space-y-4">
+              <p className="text-sm text-muted-foreground">Lade alle deine Daten als JSON-Datei herunter.</p>
+              {exportError ? <Alert tone="error">{exportError}</Alert> : null}
+              <Button variant="outline" loading={isExporting} onClick={() => void handleExport()}>
+                <Download className="h-4 w-4" />
+                Daten exportieren
+              </Button>
+
+              <hr className="border-border" />
+
+              <p className="text-sm text-muted-foreground">
+                Das Konto und alle Bewerbungen, Dokumente und Erinnerungen werden endgültig gelöscht.
+              </p>
+              <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-4 w-4" />
+                Konto löschen
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        tone="destructive"
+        title="Konto endgültig löschen?"
+        description="Dieser Schritt kann nicht rückgängig gemacht werden."
+        confirmLabel="Endgültig löschen"
+        loading={deleteAccountMutation.isPending}
+        disabled={!deletePassword}
+        onConfirm={() => {
+          setDeleteError("");
+          deleteAccountMutation.mutate();
+        }}
+        onCancel={closeDeleteDialog}
+      >
+        <div className="space-y-4">
+          {deleteError ? <Alert tone="error">{deleteError}</Alert> : null}
+          <Field label="Aktuelles Passwort">
+            <Input
+              type="password"
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(event) => setDeletePassword(event.target.value)}
+            />
+          </Field>
+        </div>
+      </ConfirmDialog>
     </>
   );
 }

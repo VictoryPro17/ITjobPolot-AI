@@ -38,6 +38,10 @@ public static class DependencyInjection
         services.AddScoped<IResumeProfileExtractor, HeuristicResumeProfileExtractor>();
         services.AddScoped<IJobMatchAnalyzer, HeuristicJobMatchAnalyzer>();
         services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IDocumentService, DocumentService>();
+        services.AddScoped<IReminderService, ReminderService>();
+        services.AddScoped<IAccountService, AccountService>();
 
         return services;
     }

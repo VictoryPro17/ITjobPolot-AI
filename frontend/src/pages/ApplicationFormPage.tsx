@@ -10,6 +10,14 @@ import { ApiError } from "@/lib/api";
 
 const initialForm: ApplicationRequest = { companyName: "", jobTitle: "", location: "", employmentType: "Unspecified", workModel: "Unspecified", salary: "", jobPostingUrl: "", appliedOn: null, status: "Draft", jobDescription: "", technologies: [], notes: "", contactName: "", contactEmail: "", contactPhone: "", interviewAt: null, interviewLocation: "" };
 
+/** ISO-Zeitpunkt in den lokalen Wert fuer ein datetime-local-Feld umwandeln. */
+function toLocalInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function ApplicationFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,6 +49,8 @@ export function ApplicationFormPage() {
     <label className="text-sm font-medium">Arbeitsmodell<select className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" value={loaded.workModel} onChange={(event) => update("workModel", event.target.value as WorkModel)}><option>Unspecified</option><option>OnSite</option><option>Hybrid</option><option>Remote</option></select></label>
     <label className="text-sm font-medium">Beschäftigungsart<select className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" value={loaded.employmentType} onChange={(event) => update("employmentType", event.target.value as EmploymentType)}><option>Unspecified</option><option>FullTime</option><option>PartTime</option><option>Contract</option><option>Internship</option><option>Freelance</option></select></label>
     <label className="text-sm font-medium">Stellenlink<input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" type="url" value={loaded.jobPostingUrl ?? ""} onChange={(event) => update("jobPostingUrl", event.target.value)} /></label>
+    <label className="text-sm font-medium">Gesprächstermin<input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" type="datetime-local" value={toLocalInputValue(loaded.interviewAt)} onChange={(event) => update("interviewAt", event.target.value ? new Date(event.target.value).toISOString() : null)} /></label>
+    <label className="text-sm font-medium">Gesprächsort<input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" value={loaded.interviewLocation ?? ""} onChange={(event) => update("interviewLocation", event.target.value)} placeholder="z. B. Videocall oder Adresse" /></label>
     <label className="text-sm font-medium md:col-span-2">Technologien (kommagetrennt)<input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3" value={loaded.technologies.join(", ")} onChange={(event) => update("technologies", event.target.value.split(","))} /></label>
     <label className="text-sm font-medium md:col-span-2">Stellenbeschreibung<textarea className="mt-1.5 min-h-32 w-full rounded-lg border border-input bg-background px-3 py-2" value={loaded.jobDescription ?? ""} onChange={(event) => update("jobDescription", event.target.value)} /></label>
     <label className="text-sm font-medium md:col-span-2">Notizen<textarea className="mt-1.5 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2" value={loaded.notes ?? ""} onChange={(event) => update("notes", event.target.value)} /></label>

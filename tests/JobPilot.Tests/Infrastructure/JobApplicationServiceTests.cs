@@ -201,8 +201,83 @@ public class JobApplicationServiceTests
             .UseInMemoryDatabase(databaseName ?? Guid.CreateVersion7().ToString())
             .Options);
 
-    private static JobApplicationService CreateService(JobPilotDbContext context, Guid userId) =>
-        new(context, new TestCurrentUser(userId), NullLogger<JobApplicationService>.Instance);
+    [Fact]
+    public async Task Create_StoresInterviewTimeInUtc()
+    {
+        // PostgreSQL (timestamptz) akzeptiert ueber Npgsql nur DateTimeOffset mit Offset 0.
+        await using var context = CreateContext();
+        var localInterview = new DateTimeOffset(2026, 10, 20, 14, 30, 0, TimeSpan.FromHours(2));
+
+        var created = await CreateService(context, Guid.CreateVersion7()).CreateAsync(
+            new CreateJobApplicationRequest("Contoso", "Developer", null, InterviewAt: localInterview));
+
+        Assert.Equal(TimeSpan.Zero, created.InterviewAt!.Value.Offset);
+        Assert.Equal(localInterview.UtcDateTime, created.InterviewAt.Value.UtcDateTime);
+    }
+
+    [Fact]
+    public async Task GetStatistics_ReturnsExtendedMetrics()
+    {
+        await using var context = CreateContext();
+        var userId = Guid.CreateVersion7();
+        var today = new DateOnly(2026, 10, 14); // Mittwoch
+        var clock = new FixedTimeProvider(new DateTimeOffset(2026, 10, 14, 12, 0, 0, TimeSpan.Zero));
+
+        var answered = new JobPilot.Domain.Entities.JobApplication
+        {
+            UserId = userId,
+            CompanyName = "Contoso",
+            JobTitle = "Developer",
+            AppliedOn = today.AddDays(-10),
+            Status = ApplicationStatus.Interview
+        };
+        var waiting = new JobPilot.Domain.Entities.JobApplication
+        {
+            UserId = userId,
+            CompanyName = "Fabrikam",
+            JobTitle = "Developer",
+            AppliedOn = today.AddDays(-40),
+            Status = ApplicationStatus.Applied
+        };
+        var draft = new JobPilot.Domain.Entities.JobApplication
+        {
+            UserId = userId,
+            CompanyName = "Northwind",
+            JobTitle = "Developer"
+        };
+
+        context.JobApplications.AddRange(answered, waiting, draft);
+        context.ApplicationStatusHistories.Add(new ApplicationStatusHistory
+        {
+            UserId = userId,
+            JobApplicationId = answered.Id,
+            FromStatus = ApplicationStatus.Applied,
+            ToStatus = ApplicationStatus.Interview,
+            ChangedAt = new DateTimeOffset(2026, 10, 8, 9, 0, 0, TimeSpan.Zero)
+        });
+        // CreatedAt setzt der DbContext beim Speichern; getrennte Saves erzwingen die Reihenfolge.
+        context.AiAnalyses.Add(new AiAnalysis { UserId = userId, JobApplicationId = answered.Id, JobDescription = "x", MatchScore = 40 });
+        await context.SaveChangesAsync();
+        await Task.Delay(5);
+        context.AiAnalyses.AddRange(
+            new AiAnalysis { UserId = userId, JobApplicationId = answered.Id, JobDescription = "x", MatchScore = 80 },
+            new AiAnalysis { UserId = userId, JobApplicationId = waiting.Id, JobDescription = "x", MatchScore = 60 });
+        await context.SaveChangesAsync();
+
+        var statistics = await CreateService(context, userId, clock).GetStatisticsAsync();
+
+        Assert.Equal(1, statistics.StatusDistribution.Single(s => s.Status == ApplicationStatus.Draft).Count);
+        Assert.Equal(1, statistics.StatusDistribution.Single(s => s.Status == ApplicationStatus.Interview).Count);
+        Assert.Equal(4d, statistics.AverageDaysToResponse);
+        Assert.Equal(70d, statistics.AverageMatchScore);
+        Assert.Equal(1, statistics.ApplicationsLast30Days);
+        Assert.Equal(12, statistics.WeeklyActivity.Count);
+        Assert.Equal(new DateOnly(2026, 10, 12), statistics.WeeklyActivity[^1].WeekStart);
+        Assert.Equal(1, statistics.WeeklyActivity.Single(w => w.WeekStart == new DateOnly(2026, 9, 28)).Applied);
+    }
+
+    private static JobApplicationService CreateService(JobPilotDbContext context, Guid userId, TimeProvider? timeProvider = null) =>
+        new(context, new TestCurrentUser(userId), timeProvider ?? TimeProvider.System, NullLogger<JobApplicationService>.Instance);
 
     private sealed class TestCurrentUser(Guid userId) : ICurrentUser
     {

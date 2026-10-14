@@ -22,6 +22,9 @@ public class StorageOptions
     public string[] AllowedContentTypes { get; set; } = ["application/pdf"];
 
     public string[] AllowedExtensions { get; set; } = [".pdf"];
+
+    /// <summary>Obergrenze der Dokumente je Benutzer (Schutz vor Speichermissbrauch).</summary>
+    public int MaxDocumentsPerUser { get; set; } = 100;
 }
 
 /// <summary>

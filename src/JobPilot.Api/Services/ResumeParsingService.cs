@@ -45,45 +45,27 @@ public class ResumeParsingService(IOptions<StorageOptions> storageOptions)
             throw new ValidationFailedException("file", $"Die Datei ist größer als das erlaubte Limit von {_storageOptions.MaxFileSizeInBytes} Bytes.");
         }
 
-        using var stream = new MemoryStream(content, writable: false);
-
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        EnsureSignatureMatches(stream, extension);
+        if (extension is not (".pdf" or ".docx" or ".txt" or ".md"))
+        {
+            throw new ValidationFailedException("file", "Dieses Dateiformat wird für Lebensläufe nicht unterstützt.");
+        }
+
+        if (!FileSignature.Matches(content, extension))
+        {
+            throw new ValidationFailedException("file", "Der Dateiinhalt passt nicht zur Dateiendung.");
+        }
+
+        using var stream = new MemoryStream(content, writable: false);
 
         var text = extension switch
         {
             ".pdf" => ReadSafely(() => ReadPdfText(stream)),
             ".docx" => ReadSafely(() => ReadDocxText(stream)),
-            ".txt" or ".md" => ReadPlainText(stream),
-            _ => throw new ValidationFailedException("file", "Dieses Dateiformat wird für Lebensläufe nicht unterstützt.")
+            _ => ReadPlainText(stream)
         };
 
         return NormalizeText(text);
-    }
-
-    private static void EnsureSignatureMatches(MemoryStream stream, string extension)
-    {
-        var expected = extension switch
-        {
-            ".pdf" => "%PDF"u8.ToArray(),
-            ".docx" => "PK"u8.ToArray(),
-            _ => null
-        };
-
-        if (expected is null)
-        {
-            return;
-        }
-
-        Span<byte> header = stackalloc byte[expected.Length];
-        stream.Position = 0;
-        var read = stream.Read(header);
-        stream.Position = 0;
-
-        if (read < expected.Length || !header.SequenceEqual(expected))
-        {
-            throw new ValidationFailedException("file", "Der Dateiinhalt passt nicht zur Dateiendung.");
-        }
     }
 
     private static string ReadSafely(Func<string> read)
