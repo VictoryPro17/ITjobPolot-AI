@@ -74,8 +74,22 @@ export const employmentTypeLabels: Record<EmploymentType, string> = {
   Freelance: "Freiberuflich",
 };
 
-export async function getApplications(params: { search: string; status: ApplicationStatus | ""; page: number; pageSize?: number }) {
-  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize ?? 10), sortBy: "UpdatedAt", sortDescending: "true" });
+export type ApplicationSortField = "UpdatedAt" | "CreatedAt" | "AppliedOn" | "CompanyName" | "JobTitle" | "Status";
+
+export async function getApplications(params: {
+  search: string;
+  status: ApplicationStatus | "";
+  page: number;
+  pageSize?: number;
+  sortBy?: ApplicationSortField;
+  sortDescending?: boolean;
+}) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize ?? 10),
+    sortBy: params.sortBy ?? "UpdatedAt",
+    sortDescending: String(params.sortDescending ?? true),
+  });
   if (params.search) query.set("search", params.search);
   if (params.status) query.set("status", params.status);
   return apiFetch<PagedApplications>(`/job-applications?${query}`);

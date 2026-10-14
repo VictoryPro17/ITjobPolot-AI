@@ -1,11 +1,14 @@
 /** Fehler einer API-Anfrage inklusive HTTP-Statuscode. */
 export class ApiError extends Error {
   public readonly status: number;
+  /** Feldfehler aus einer ValidationProblemDetails-Antwort, Schluessel in camelCase. */
+  public readonly fieldErrors: Record<string, string>;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.fieldErrors = fieldErrors;
   }
 }
 
@@ -14,6 +17,7 @@ export const BASE_URL = "/api";
 interface ProblemDetails {
   title?: string;
   detail?: string;
+  errors?: Record<string, string[]>;
 }
 
 /**
@@ -36,7 +40,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    throw await readError(response);
   }
 
   if (response.status === 204) {
@@ -46,12 +50,21 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return (await response.json()) as T;
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readError(response: Response): Promise<ApiError> {
   try {
     const problem = (await response.json()) as ProblemDetails;
-    return problem.detail ?? problem.title ?? defaultMessage(response.status);
+    const fieldErrors: Record<string, string> = {};
+    for (const [key, messages] of Object.entries(problem.errors ?? {})) {
+      if (messages.length > 0) {
+        fieldErrors[key.charAt(0).toLowerCase() + key.slice(1)] = messages[0];
+      }
+    }
+    // Bei Validierungsfehlern ist die erste konkrete Meldung hilfreicher als der allgemeine Titel.
+    const firstFieldError = Object.values(fieldErrors)[0];
+    const message = firstFieldError ?? problem.detail ?? problem.title ?? defaultMessage(response.status);
+    return new ApiError(response.status, message, fieldErrors);
   } catch {
-    return defaultMessage(response.status);
+    return new ApiError(response.status, defaultMessage(response.status));
   }
 }
 
@@ -77,7 +90,7 @@ export async function apiDownload(path: string, init: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    throw await readError(response);
   }
 
   return {
