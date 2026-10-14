@@ -9,6 +9,21 @@ public class AppOptions
     public string[] CorsOrigins { get; set; } = [];
 }
 
+/// <summary>
+/// Grenzen des Missbrauchsschutzes pro IP-Adresse und Minute. Die Standardwerte gelten
+/// fuer den Betrieb; hoehere Werte nur gezielt setzen, z. B. fuer automatisierte Browser-Tests.
+/// </summary>
+public class RateLimitOptions
+{
+    public const string SectionName = "RateLimiting";
+
+    /// <summary>Anfragen pro Minute fuer alle Endpunkte.</summary>
+    public int GlobalPermitLimit { get; set; } = 120;
+
+    /// <summary>Anfragen pro Minute fuer Anmeldung und Registrierung.</summary>
+    public int AuthPermitLimit { get; set; } = 10;
+}
+
 /// <summary>Einstellungen fuer den Dateiupload.</summary>
 public class StorageOptions
 {

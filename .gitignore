@@ -388,3 +388,9 @@ logs/
 
 # Lokale Datenbankdaten
 postgres-data/
+
+# Playwright-Browser-Tests
+frontend/test-results/
+frontend/test-results-*/
+frontend/playwright-report/
+frontend/e2e-artifacts/

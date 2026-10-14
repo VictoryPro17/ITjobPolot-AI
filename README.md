@@ -116,6 +116,8 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 | `Ai:TimeoutSeconds` | `Ai__TimeoutSeconds` | `120` | Danach greift die regelbasierte Analyse |
 | `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |
 | `Ai:DailyRequestLimitPerUser` | `Ai__DailyRequestLimitPerUser` | `25` | Kostenbremse pro Benutzer und Tag |
+| `RateLimiting:GlobalPermitLimit` | `RateLimiting__GlobalPermitLimit` | `120` | Anfragen pro IP und Minute |
+| `RateLimiting:AuthPermitLimit` | `RateLimiting__AuthPermitLimit` | `10` | Anmeldungen/Registrierungen pro IP und Minute |
 
 ### Secrets niemals committen
 
@@ -163,6 +165,27 @@ dotnet build "ITjobPolot AI.slnx"
 dotnet test tests/JobPilot.Tests
 cd frontend && npm run build
 ```
+
+### Browser-Tests (Playwright)
+
+Die Tests in `frontend/e2e/` laufen gegen die lokale Umgebung in Chromium – Desktop hell, Desktop dunkel
+und Handybreite. Jeder Test legt ein eigenes Konto an und löscht es am Ende wieder.
+
+```bash
+# einmalig
+cd frontend && npx playwright install chromium
+
+# API mit erhöhten Limits starten (sonst greift der Missbrauchsschutz)
+RateLimiting__GlobalPermitLimit=100000 RateLimiting__AuthPermitLimit=1000 \n  dotnet run --project src/JobPilot.Api --urls http://localhost:5042
+
+# Tests (Vite startet bei Bedarf automatisch)
+cd frontend && npm run e2e        # alle Projekte
+npm run e2e -- --project=mobile   # nur Handybreite
+npm run e2e:ui                    # interaktiver Modus
+```
+
+`e2e/visual.spec.ts` legt Screenshots der Hauptseiten und einen Barrierefreiheitsbericht (axe) in
+`frontend/e2e-artifacts/` ab. Der Bericht lässt den Lauf nicht scheitern.
 
 ## Sicherheitsmaßnahmen
 

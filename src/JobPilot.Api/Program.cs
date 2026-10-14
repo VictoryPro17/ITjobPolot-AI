@@ -10,6 +10,7 @@ using JobPilot.Application.Common;
 using JobPilot.Infrastructure;
 using JobPilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 
@@ -27,6 +28,7 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJobPilotIdentity(builder.Environment);
@@ -81,7 +83,7 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 120,
+                PermitLimit = Math.Max(1, RateLimits(context).GlobalPermitLimit),
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -91,7 +93,7 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = Math.Max(1, RateLimits(context).AuthPermitLimit),
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -135,6 +137,11 @@ app.Run();
 /// Fuehrt Migrationen und Rollen-Seeding beim Start aus. Schlaegt die Datenbank
 /// fehl, startet die API trotzdem, damit der Health-Endpunkt diagnostizierbar bleibt.
 /// </summary>
+// Grenzen werden pro Anfrage aus den Optionen gelesen, damit sie sich per Konfiguration
+// (auch in Integrationstests) setzen lassen.
+static RateLimitOptions RateLimits(HttpContext context) =>
+    context.RequestServices.GetRequiredService<IOptions<RateLimitOptions>>().Value;
+
 static async Task MigrateDatabaseAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
