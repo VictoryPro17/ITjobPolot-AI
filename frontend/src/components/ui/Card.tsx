@@ -19,7 +19,7 @@ export function CardHeader({ title, description, action, icon: Icon }: CardHeade
     <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
       <div className="flex items-start gap-3">
         {Icon ? (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text">
             <Icon className="h-4 w-4" />
           </span>
         ) : null}
@@ -28,7 +28,7 @@ export function CardHeader({ title, description, action, icon: Icon }: CardHeade
           {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         </div>
       </div>
-      {action}
+      {action ? <div className="shrink-0 whitespace-nowrap">{action}</div> : null}
     </div>
   );
 }

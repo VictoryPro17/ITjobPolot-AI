@@ -51,7 +51,7 @@ function StatusFilterChips({
   const chipClass = (active: boolean) =>
     cn(
       "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-      active ? "border-primary bg-primary/10 font-medium text-primary" : "border-border bg-card hover:bg-accent/50",
+      active ? "border-primary bg-primary/10 font-medium text-primary-text" : "border-border bg-card hover:bg-accent/50",
     );
 
   return (

@@ -41,6 +41,9 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>Bevorzugtes Farbschema der Oberflaeche ("light", "dark", "system").</summary>
     public string ThemePreference { get; set; } = "system";
 
+    /// <summary>Akzentfarbe der Oberflaeche ("blue", "green", "purple").</summary>
+    public string AccentColor { get; set; } = "blue";
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

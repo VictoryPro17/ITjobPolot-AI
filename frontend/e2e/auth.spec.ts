@@ -16,7 +16,8 @@ test.describe("Anmeldung", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Mira");
 
     await openNavigation(page);
-    await page.getByRole("button", { name: "Abmelden" }).click();
+    await page.getByRole("button", { name: "Benutzermenü öffnen" }).click();
+    await page.getByRole("menuitem", { name: "Abmelden" }).click();
     await expect(page).toHaveURL(/\/anmelden/);
 
     await page.getByLabel("E-Mail-Adresse").fill(email);

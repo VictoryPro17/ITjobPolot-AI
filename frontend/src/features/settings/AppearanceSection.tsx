@@ -1,84 +1,85 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
 
 import { Alert } from "@/components/ui/Alert";
-import type { ThemePreference } from "@/components/theme/ThemeProvider";
+import type { AccentColor, ThemePreference } from "@/components/theme/ThemeProvider";
 import { useTheme } from "@/components/theme/useTheme";
-import { useAuth } from "@/features/auth/AuthProvider";
-import { updateProfile, type CurrentUser } from "@/features/auth/api";
+import { useSaveAppearance } from "@/features/settings/appearance";
 import { SettingRow, SettingsSection } from "@/features/settings/SettingsLayout";
 import { cn } from "@/lib/utils";
 
-const options: { value: ThemePreference; label: string; description: string; icon: typeof Sun }[] = [
+const modes: { value: ThemePreference; label: string; description: string; icon: typeof Sun }[] = [
   { value: "light", label: "Hell", description: "Immer helles Design", icon: Sun },
   { value: "dark", label: "Dunkel", description: "Immer dunkles Design", icon: Moon },
   { value: "system", label: "System", description: "Folgt deinem Gerät", icon: Monitor },
 ];
 
-/**
- * Sendet nur das Theme mit den *gespeicherten* Profilwerten, damit ungespeicherte
- * Eingaben aus dem Profilformular nicht versehentlich mitgespeichert werden.
- */
-function themeRequest(user: CurrentUser, themePreference: ThemePreference) {
-  return {
-    firstName: user.firstName ?? null,
-    lastName: user.lastName ?? null,
-    targetJobTitle: user.targetJobTitle ?? null,
-    location: user.location ?? null,
-    profileSummary: user.profileSummary ?? null,
-    experienceSummary: user.experienceSummary ?? null,
-    educationSummary: user.educationSummary ?? null,
-    resumeText: user.resumeText ?? null,
-    skills: user.skills,
-    themePreference,
-  };
-}
+/** Vorschaufarben der Akzente (entsprechen --primary im hellen Modus). */
+const accents: { value: AccentColor; label: string; swatch: string }[] = [
+  { value: "blue", label: "Blau", swatch: "oklch(0.55 0.21 264)" },
+  { value: "green", label: "Grün", swatch: "oklch(0.52 0.14 155)" },
+  { value: "purple", label: "Lila", swatch: "oklch(0.53 0.22 300)" },
+];
 
 export function AppearanceSection() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const { preference, setPreference } = useTheme();
-
-  const save = useMutation({
-    mutationFn: (next: ThemePreference) => updateProfile(themeRequest(user!, next)),
-    onSuccess: (updated) => queryClient.setQueryData(["auth", "me"], updated),
-  });
-
-  function choose(next: ThemePreference) {
-    setPreference(next);
-    if (user) save.mutate(next);
-  }
+  const { preference, accent } = useTheme();
+  const { save, isError } = useSaveAppearance();
 
   return (
-    <SettingsSection title="Darstellung" description="Die Auswahl gilt sofort und wird in deinem Konto gespeichert.">
-      <SettingRow label="Farbschema" description="„System“ wechselt automatisch mit der Einstellung deines Geräts.">
-        <div role="radiogroup" aria-label="Farbschema" className="grid gap-3 sm:grid-cols-3">
-          {options.map((option) => {
-            const Icon = option.icon;
-            const active = preference === option.value;
+    <SettingsSection title="Darstellung" description="Änderungen gelten sofort und werden in deinem Konto gespeichert – auch für andere Geräte.">
+      <SettingRow label="Modus" description="„System“ wechselt automatisch mit der Einstellung deines Geräts.">
+        <div role="radiogroup" aria-label="Modus" className="grid gap-3 sm:grid-cols-3">
+          {modes.map((mode) => {
+            const Icon = mode.icon;
+            const active = preference === mode.value;
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => save({ themePreference: mode.value })}
+                className={cn(
+                  "flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors",
+                  active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted",
+                )}
+              >
+                <ModePreview value={mode.value} />
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {mode.label}
+                </span>
+                <span className="text-xs text-muted-foreground">{mode.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </SettingRow>
+
+      <SettingRow label="Akzentfarbe" description="Färbt Schaltflächen, Hervorhebungen und das Logo. Statusfarben bleiben unverändert.">
+        <div role="radiogroup" aria-label="Akzentfarbe" className="flex flex-wrap gap-3">
+          {accents.map((option) => {
+            const active = accent === option.value;
             return (
               <button
                 key={option.value}
                 type="button"
                 role="radio"
                 aria-checked={active}
-                onClick={() => choose(option.value)}
+                onClick={() => save({ accentColor: option.value })}
                 className={cn(
-                  "flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors",
-                  active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted",
+                  "flex items-center gap-2.5 rounded-lg border py-2 pl-2 pr-4 text-sm font-medium transition-colors",
+                  active ? "border-primary ring-1 ring-primary" : "border-border hover:bg-muted",
                 )}
               >
-                <ThemePreview value={option.value} />
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  {option.label}
+                <span className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: option.swatch }} aria-hidden="true">
+                  {active ? <Check className="h-4 w-4" /> : null}
                 </span>
-                <span className="text-xs text-muted-foreground">{option.description}</span>
+                {option.label}
               </button>
             );
           })}
         </div>
-        {save.isError ? (
+        {isError ? (
           <Alert tone="warning" className="mt-3">
             Die Auswahl gilt auf diesem Gerät, konnte aber nicht im Konto gespeichert werden.
           </Alert>
@@ -88,10 +89,10 @@ export function AppearanceSection() {
   );
 }
 
-/** Kleine schematische Vorschau des Farbschemas. */
-function ThemePreview({ value }: { value: ThemePreference }) {
-  const light = <MiniWindow className="bg-white" bar="bg-slate-200" line="bg-slate-300" />;
-  const dark = <MiniWindow className="bg-slate-900" bar="bg-slate-700" line="bg-slate-600" />;
+/** Kleine schematische Vorschau des Modus in der aktuellen Akzentfarbe. */
+function ModePreview({ value }: { value: ThemePreference }) {
+  const light = <MiniWindow surface="bg-white" bar="bg-slate-200" line="bg-slate-300" />;
+  const dark = <MiniWindow surface="bg-slate-900" bar="bg-slate-700" line="bg-slate-600" />;
 
   return (
     <div className="h-16 w-full overflow-hidden rounded-md border border-border" aria-hidden="true">
@@ -105,14 +106,14 @@ function ThemePreview({ value }: { value: ThemePreference }) {
   );
 }
 
-function MiniWindow({ className, bar, line }: { className: string; bar: string; line: string }) {
+function MiniWindow({ surface, bar, line }: { surface: string; bar: string; line: string }) {
   return (
-    <div className={cn("flex h-full gap-1.5 p-1.5", className)}>
+    <div className={cn("flex h-full gap-1.5 p-1.5", surface)}>
       <div className={cn("w-1/4 rounded-sm", bar)} />
       <div className="flex flex-1 flex-col gap-1">
         <div className={cn("h-1.5 w-3/4 rounded-sm", line)} />
         <div className={cn("h-1.5 w-1/2 rounded-sm", line)} />
-        <div className={cn("mt-auto h-3 w-full rounded-sm", bar)} />
+        <div className="mt-auto h-3 w-1/3 rounded-sm bg-primary" />
       </div>
     </div>
   );

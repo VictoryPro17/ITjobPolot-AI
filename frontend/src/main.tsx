@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "@/App";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { AppearanceSync } from "@/features/settings/appearance";
 import "@/index.css";
 
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ createRoot(container).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
+          <AppearanceSync />
           <BrowserRouter>
             <App />
           </BrowserRouter>

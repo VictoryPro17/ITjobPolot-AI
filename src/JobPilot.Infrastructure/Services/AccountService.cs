@@ -42,6 +42,7 @@ public class AccountService(
                 u.Skills,
                 u.ResumeText,
                 u.ThemePreference,
+                u.AccentColor,
                 HasAvatar = u.AvatarStoragePath != null,
                 u.CreatedAt
             })

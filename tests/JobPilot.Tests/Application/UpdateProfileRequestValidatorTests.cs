@@ -16,4 +16,20 @@ public class UpdateProfileRequestValidatorTests
 
         Assert.Equal(expectedValid, result.IsValid);
     }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("blue", true)]
+    [InlineData("green", true)]
+    [InlineData("purple", true)]
+    [InlineData("red", false)]
+    [InlineData("Blue", false)]
+    public void AccentColor_AllowsOnlyKnownValues(string? accentColor, bool expectedValid)
+    {
+        var request = new UpdateProfileRequest(null, null, null, null, null, null, null, null, null, null, accentColor);
+
+        var result = new UpdateProfileRequestValidator().Validate(request);
+
+        Assert.Equal(expectedValid, result.IsValid);
+    }
 }

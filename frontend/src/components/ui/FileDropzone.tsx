@@ -50,7 +50,7 @@ export function FileDropzone({ accept, hint, loading, fileName, disabled, onFile
       onDrop={handleDrop}
     >
       <input type="file" className="sr-only" accept={accept} disabled={inactive} onChange={handleChange} />
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary-text">
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
       </span>
       {loading ? (

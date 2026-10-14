@@ -501,7 +501,7 @@ function KanbanCard({
       ) : null}
 
       {upcoming ? (
-        <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+        <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary-text">
           <CalendarClock className="h-3 w-3" aria-hidden="true" />
           {formatDateTime(item.interviewAt)}
         </p>

@@ -19,6 +19,10 @@
   --success: oklch(0.6 0.15 150);
   --warning: oklch(0.72 0.16 70);
   --ring: oklch(0.55 0.21 264);
+  /* Text auf akzentgetoentem Grund (z. B. aktiver Menuepunkt); mindestens 4,5 : 1. */
+  --primary-text: oklch(0.47 0.2 264);
+  --logo-from: oklch(0.6 0.2 264);
+  --logo-to: oklch(0.5 0.22 285);
   --radius: 0.75rem;
   --status-draft: #898781;
   --status-applied: #2a78d6;
@@ -52,6 +56,9 @@
   --success: oklch(0.72 0.15 150);
   --warning: oklch(0.8 0.15 70);
   --ring: oklch(0.68 0.17 264);
+  --primary-text: oklch(0.8 0.11 264);
+  --logo-from: oklch(0.68 0.17 264);
+  --logo-to: oklch(0.6 0.2 285);
   --status-draft: #898781;
   --status-applied: #256abf;
   --status-interview: #9085e9;
@@ -67,6 +74,43 @@
   color-scheme: dark;
 }
 
+/*
+ * Akzentfarben. Blau ist der Standard (oben); Gruen und Lila ueberschreiben nur die
+ * Akzent-Tokens. Statusfarben bleiben gleich, damit Board und Diagramme eindeutig sind.
+ * Kontraste (WCAG): Button-Text und Text auf 10-%-Toenung jeweils >= 4,9 : 1.
+ */
+:root[data-accent="green"] {
+  --primary: oklch(0.52 0.14 155);
+  --ring: oklch(0.52 0.14 155);
+  --primary-text: oklch(0.45 0.12 155);
+  --logo-from: oklch(0.62 0.15 155);
+  --logo-to: oklch(0.5 0.12 175);
+}
+
+:root[data-accent="purple"] {
+  --primary: oklch(0.53 0.22 300);
+  --ring: oklch(0.53 0.22 300);
+  --primary-text: oklch(0.46 0.21 300);
+  --logo-from: oklch(0.6 0.2 300);
+  --logo-to: oklch(0.5 0.22 320);
+}
+
+.dark[data-accent="green"] {
+  --primary: oklch(0.74 0.16 155);
+  --ring: oklch(0.74 0.16 155);
+  --primary-text: oklch(0.83 0.12 155);
+  --logo-from: oklch(0.74 0.16 155);
+  --logo-to: oklch(0.62 0.13 175);
+}
+
+.dark[data-accent="purple"] {
+  --primary: oklch(0.72 0.16 300);
+  --ring: oklch(0.72 0.16 300);
+  --primary-text: oklch(0.82 0.1 300);
+  --logo-from: oklch(0.72 0.16 300);
+  --logo-to: oklch(0.62 0.19 320);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -78,6 +122,7 @@
   --color-input: var(--input);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);

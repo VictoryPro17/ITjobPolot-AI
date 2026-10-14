@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/brand/Logo";
 import { Card, CardBody } from "@/components/ui/Card";
 
 export function RegisterPage() {
@@ -39,7 +40,7 @@ export function RegisterPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <Card className="w-full max-w-md">
         <CardBody className="space-y-6 p-6 sm:p-8">
-          <div><p className="text-sm font-semibold text-primary">JobPilot AI</p><h1 className="mt-2 text-2xl font-semibold tracking-tight">Konto erstellen</h1><p className="mt-1 text-sm text-muted-foreground">Starten Sie mit einem übersichtlichen Bewerbungsmanager.</p></div>
+          <div><Logo /><h1 className="mt-2 text-2xl font-semibold tracking-tight">Konto erstellen</h1><p className="mt-1 text-sm text-muted-foreground">Starten Sie mit einem übersichtlichen Bewerbungsmanager.</p></div>
           {error ? <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">

@@ -145,6 +145,7 @@ public class AuthController(
         user.ResumeText = Normalize(request.ResumeText);
         user.Skills = NormalizeSkills(request.Skills);
         user.ThemePreference = request.ThemePreference ?? user.ThemePreference;
+        user.AccentColor = request.AccentColor ?? user.AccentColor;
 
         var result = await userManager.UpdateAsync(user);
 
@@ -365,7 +366,8 @@ public class AuthController(
             user.ThemePreference,
             [.. roles],
             user.CreatedAt,
-            user.AvatarStoragePath is null ? null : user.AvatarUpdatedAt?.ToUnixTimeMilliseconds());
+            user.AvatarStoragePath is null ? null : user.AvatarUpdatedAt?.ToUnixTimeMilliseconds(),
+            user.AccentColor);
     }
 
     private static string? Normalize(string? value) =>

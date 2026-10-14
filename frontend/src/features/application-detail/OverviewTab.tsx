@@ -65,7 +65,7 @@ export function OverviewTab({ application }: { application: ApplicationDetail })
       </Card>
 
       <Card>
-        <CardHeader icon={Info} title="Eckdaten" />
+        <CardHeader icon={Info} title="Stellendetails" />
         <CardBody>
           <dl className="grid gap-4 sm:grid-cols-2">
             <Fact label="Beschäftigungsart">{employmentType}</Fact>

@@ -14,6 +14,7 @@ export interface CurrentUser {
   resumeText: string | null;
   skills: string[];
   themePreference: string;
+  accentColor?: string;
   roles: string[];
   createdAt: string;
   avatarVersion?: number | null;
@@ -72,6 +73,7 @@ export interface UpdateProfileRequest {
   resumeText: string | null;
   skills: string[] | null;
   themePreference: string | null;
+  accentColor?: string | null;
 }
 
 export function updateProfile(request: UpdateProfileRequest) {

@@ -70,6 +70,7 @@ public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRe
 public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequest>
 {
     private static readonly string[] AllowedThemes = ["light", "dark", "system"];
+    private static readonly string[] AllowedAccentColors = ["blue", "green", "purple"];
 
     public UpdateProfileRequestValidator()
     {
@@ -106,5 +107,9 @@ public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequ
         RuleFor(x => x.ThemePreference)
             .Must(theme => theme is null || AllowedThemes.Contains(theme))
             .WithMessage("Erlaubte Werte sind light, dark oder system.");
+
+        RuleFor(x => x.AccentColor)
+            .Must(color => color is null || AllowedAccentColors.Contains(color))
+            .WithMessage("Erlaubte Akzentfarben sind blue, green oder purple.");
     }
 }

@@ -13,7 +13,7 @@ export function PageHeader({ title, description, action, icon: Icon }: PageHeade
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-start gap-3">
         {Icon ? (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
             <Icon className="h-5 w-5" />
           </span>
         ) : null}

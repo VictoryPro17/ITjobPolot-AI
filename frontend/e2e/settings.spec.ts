@@ -12,7 +12,8 @@ test.describe("Einstellungen", () => {
     await expect(page.getByRole("heading", { name: "Sicherheit" })).toBeVisible();
 
     await page.goto("/einstellungen?bereich=daten");
-    await expect(page.getByRole("heading", { name: "Gefahrenbereich" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Deine Daten herunterladen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Konto löschen" })).toBeVisible();
   });
 
   test("Profil speichern und ungespeicherte Eingaben bleiben beim Bereichswechsel erhalten", async ({ page, user }) => {
@@ -66,10 +67,10 @@ test.describe("Einstellungen", () => {
     user.password = newPassword;
   });
 
-  test("Farbschema wird sofort angewendet und gespeichert", async ({ page, user }) => {
+  test("Modus wird sofort angewendet und gespeichert", async ({ page, user }) => {
     void user;
     await page.goto("/einstellungen?bereich=darstellung");
-    const scheme = page.getByRole("radiogroup", { name: "Farbschema" });
+    const scheme = page.getByRole("radiogroup", { name: "Modus" });
 
     await scheme.getByRole("radio", { name: /Dunkel/ }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);

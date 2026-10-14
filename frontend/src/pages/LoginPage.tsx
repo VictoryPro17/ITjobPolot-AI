@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/brand/Logo";
 import { Card, CardBody } from "@/components/ui/Card";
 
 export function LoginPage() {
@@ -36,7 +37,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardBody className="space-y-6 p-6 sm:p-8">
           <div>
-            <p className="text-sm font-semibold text-primary">JobPilot AI</p>
+            <Logo />
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">Willkommen zurück</h1>
             <p className="mt-1 text-sm text-muted-foreground">Melden Sie sich an, um Ihre Bewerbungen zu verwalten.</p>
           </div>

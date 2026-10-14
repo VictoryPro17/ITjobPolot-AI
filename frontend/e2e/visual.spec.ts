@@ -11,7 +11,8 @@ const SCREENSHOT_DIR = path.join(ARTIFACT_DIR, "screenshots");
 
 /**
  * Screenshots der Hauptseiten (zur manuellen Sichtpruefung, kein Pixelvergleich) und
- * ein Barrierefreiheits-Scan mit axe. Der Scan meldet nur und laesst den Test nicht scheitern.
+ * ein Barrierefreiheits-Scan mit axe. Schwere und kritische Befunde lassen den Test scheitern;
+ * zusaetzlich werden einige Seiten in den Akzentfarben Gruen und Lila geprueft.
  */
 test("Hauptseiten: Screenshots und Barrierefreiheit", async ({ page, user }, testInfo) => {
   test.setTimeout(120_000);
@@ -47,18 +48,10 @@ test("Hauptseiten: Screenshots und Barrierefreiheit", async ({ page, user }, tes
   const report: { page: string; violations: { id: string; impact: string | null | undefined; help: string; nodes: number; targets: string[] }[] }[] = [];
   await mkdir(SCREENSHOT_DIR, { recursive: true });
 
-  for (const entry of pages) {
-    await page.goto(entry.url);
-    await page.waitForLoadState("networkidle");
-    // Ladeplatzhalter (Lazy-Seiten) muessen verschwunden sein.
-    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
-    await expect(page.getByRole("heading").first()).toBeVisible();
-
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${project}-${entry.name}.png`), fullPage: true });
-
+  async function scan(name: string) {
     const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     report.push({
-      page: entry.name,
+      page: name,
       violations: result.violations.map((violation) => ({
         id: violation.id,
         impact: violation.impact,
@@ -69,6 +62,34 @@ test("Hauptseiten: Screenshots und Barrierefreiheit", async ({ page, user }, tes
     });
   }
 
+  for (const entry of pages) {
+    await page.goto(entry.url);
+    await page.waitForLoadState("networkidle");
+    // Ladeplatzhalter (Lazy-Seiten) muessen verschwunden sein.
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+    await expect(page.getByRole("heading").first()).toBeVisible();
+
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${project}-${entry.name}.png`), fullPage: true });
+
+    await scan(entry.name);
+  }
+
+  // Akzentfarben ueber die Einstellungen waehlen (im Konto gespeichert) und erneut pruefen.
+  const accentLabels = { green: "Grün", purple: "Lila" } as const;
+  for (const accent of ["green", "purple"] as const) {
+    await page.goto("/einstellungen?bereich=darstellung");
+    await page.getByRole("radiogroup", { name: "Akzentfarbe" }).getByRole("radio", { name: accentLabels[accent] }).click();
+    await expect.poll(async () => ((await (await user.api.get("/api/auth/me")).json()) as { accentColor: string }).accentColor).toBe(accent);
+    for (const entry of pages.filter((candidate) => ["dashboard", "bewerbungen", "einstellungen"].includes(candidate.name))) {
+      await page.goto(entry.url);
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("html")).toHaveAttribute("data-accent", accent);
+      await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${project}-${entry.name}-${accent}.png`), fullPage: true });
+      await scan(`${entry.name} (${accent})`);
+    }
+  }
+
   const reportPath = path.join(ARTIFACT_DIR, `a11y-${project}.json`);
   await writeFile(reportPath, JSON.stringify(report, null, 2));
   await testInfo.attach("a11y-report", { path: reportPath, contentType: "application/json" });
@@ -76,8 +97,5 @@ test("Hauptseiten: Screenshots und Barrierefreiheit", async ({ page, user }, tes
   const serious = report.flatMap((entry) =>
     entry.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${entry.page}: ${violation.id} (${violation.nodes})`),
   );
-  if (serious.length > 0) {
-    testInfo.annotations.push({ type: "a11y", description: serious.join("; ") });
-    console.log(`[${project}] Schwere Barrierefreiheits-Befunde:\n  ${serious.join("\n  ")}`);
-  }
+  expect(serious, `Schwere Barrierefreiheits-Befunde, Details in ${reportPath}`).toEqual([]);
 });

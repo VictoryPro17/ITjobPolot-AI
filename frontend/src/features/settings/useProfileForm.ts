@@ -147,6 +147,7 @@ export function useProfileForm() {
         skills: parseSkills(profile.skills),
         // null laesst das gespeicherte Theme unveraendert; es wird separat gespeichert.
         themePreference: null,
+        accentColor: null,
       }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["auth", "me"], updated);

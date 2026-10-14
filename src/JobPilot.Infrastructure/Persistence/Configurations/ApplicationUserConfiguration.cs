@@ -21,6 +21,7 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(u => u.ResumeText).HasColumnType("text");
         builder.Property(u => u.AvatarStoragePath).HasMaxLength(500);
         builder.Property(u => u.ThemePreference).HasMaxLength(20).HasDefaultValue("system");
+        builder.Property(u => u.AccentColor).HasMaxLength(20).HasDefaultValue("blue");
 
         builder.Ignore(u => u.DisplayName);
     }

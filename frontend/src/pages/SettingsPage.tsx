@@ -64,7 +64,8 @@ export function SettingsPage() {
         </aside>
 
         <div className="min-w-0 max-w-4xl space-y-6">
-          {usesProfileForm ? <CompletenessCard percent={form.percent} items={form.completeness} onJump={jumpTo} /> : null}
+          {/* Bei vollstaendigem Profil gibt es nichts mehr zu tun; die Anzeige verschwindet. */}
+          {usesProfileForm && form.percent < 100 ? <CompletenessCard percent={form.percent} items={form.completeness} onJump={jumpTo} /> : null}
 
           {!usesProfileForm && form.hasUnsavedChanges ? (
             <Alert tone="warning" title="Ungespeicherte Profiländerungen">

@@ -135,7 +135,7 @@ export function DocumentsTab({ applicationId }: { applicationId: string }) {
             <ul className="divide-y divide-border">
               {items.map((item) => (
                 <li key={item.id} className="flex items-center gap-3 py-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text">
                     <FileText className="h-5 w-5" />
                   </span>
                   <div className="min-w-0 flex-1">

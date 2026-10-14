@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Plane } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+
+import { Logo, LogoMark } from "@/components/brand/Logo";
 
 interface AuthLayoutProps {
   title: string;
@@ -18,9 +20,7 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-indigo-400/20 blur-3xl" />
 
         <div className="relative flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-primary">
-            <Plane className="h-5 w-5" />
-          </span>
+          <LogoMark className="h-9 w-9 ring-1 ring-white/30" />
           <span className="font-semibold">JobPilot AI</span>
         </div>
 
@@ -44,12 +44,7 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
 
       <section className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm space-y-6 animate-fade-in">
-          <span className="flex items-center gap-2 font-semibold tracking-tight lg:hidden">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-primary-foreground shadow-sm">
-              <Plane className="h-4 w-4" />
-            </span>
-            JobPilot AI
-          </span>
+          <Logo className="lg:hidden" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
             {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}

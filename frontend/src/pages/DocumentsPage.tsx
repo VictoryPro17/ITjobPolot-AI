@@ -222,7 +222,7 @@ export function DocumentsPage() {
                   const Icon = item.contentType.startsWith("image/") ? FileImage : typeIcons[item.documentType];
                   return (
                     <li key={item.id} className="flex items-center gap-3 py-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text">
                         <Icon className="h-5 w-5" />
                       </span>
                       <div className="min-w-0 flex-1">

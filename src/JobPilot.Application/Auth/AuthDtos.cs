@@ -29,7 +29,8 @@ public record UpdateProfileRequest(
     string? EducationSummary,
     string? ResumeText,
     IReadOnlyList<string>? Skills,
-    string? ThemePreference);
+    string? ThemePreference,
+    string? AccentColor = null);
 
 /// <summary>Profil des angemeldeten Benutzers.</summary>
 public record CurrentUserResponse(
@@ -48,4 +49,5 @@ public record CurrentUserResponse(
     string ThemePreference,
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt,
-    long? AvatarVersion = null);
+    long? AvatarVersion = null,
+    string AccentColor = "blue");
