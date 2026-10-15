@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Database, FileText, Palette, Settings, ShieldCheck, UserRound } from "lucide-react";
 
@@ -22,7 +22,9 @@ export function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const section = parseSection(searchParams.get("bereich"));
   const form = useProfileForm();
-  const [pendingFocus, setPendingFocus] = useState<string | null>(null);
+  // Feld, das nach dem Bereichswechsel fokussiert werden soll; der Zaehler loest den Sprung aus.
+  const pendingFocus = useRef<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
 
   const usesProfileForm = section === "profil" || section === "lebenslauf";
 
@@ -40,19 +42,20 @@ export function SettingsPage() {
 
   function jumpTo(item: CompletenessItem) {
     selectSection(item.section);
-    setPendingFocus(item.fieldId);
+    pendingFocus.current = item.fieldId;
+    setFocusRequest((count) => count + 1);
   }
 
   // Nach dem Bereichswechsel zum gewuenschten Feld springen.
   useEffect(() => {
-    if (!pendingFocus) return;
-    const element = document.getElementById(pendingFocus);
+    if (!pendingFocus.current) return;
+    const element = document.getElementById(pendingFocus.current);
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
       (element.querySelector("input, textarea") as HTMLElement | null ?? element).focus({ preventScroll: true });
-      setPendingFocus(null);
+      pendingFocus.current = null;
     }
-  }, [pendingFocus, section]);
+  }, [focusRequest, section]);
 
   return (
     <>

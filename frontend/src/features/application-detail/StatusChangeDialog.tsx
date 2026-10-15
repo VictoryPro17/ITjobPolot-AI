@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Alert } from "@/components/ui/Alert";
@@ -16,13 +16,16 @@ export function StatusChangeDialog({ application, open, onClose }: { application
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<ApplicationStatus>(application.status);
   const [comment, setComment] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
 
-  useEffect(() => {
+  // Beim Oeffnen auf den aktuellen Status zuruecksetzen (waehrend des Renderns statt im Effekt).
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setStatus(application.status);
       setComment("");
     }
-  }, [open, application.status]);
+  }
 
   const save = useMutation({
     mutationFn: () => changeStatus(application.id, status, comment.trim() || undefined),

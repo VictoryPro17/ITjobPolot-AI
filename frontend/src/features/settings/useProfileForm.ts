@@ -138,14 +138,14 @@ export function useProfileForm() {
   // Nur die gespeicherten Profildaten bestimmen den Formularstand. Ein neues Profilbild oder ein
   // geaendertes Theme aktualisiert zwar den Benutzer, darf aber ungespeicherte Eingaben nicht verwerfen.
   const savedProfileKey = user ? JSON.stringify(toForm(user)) : "";
+  const [syncedProfileKey, setSyncedProfileKey] = useState("");
 
-  useEffect(() => {
-    if (user) {
-      setProfile(toForm(user));
-      setHasUnsavedChanges(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- bewusst nur bei geaenderten Profildaten
-  }, [savedProfileKey]);
+  // Abgleich waehrend des Renderns statt im Effekt: kein zusaetzlicher Durchlauf mit veralteten Daten.
+  if (user && savedProfileKey !== syncedProfileKey) {
+    setSyncedProfileKey(savedProfileKey);
+    setProfile(toForm(user));
+    setHasUnsavedChanges(false);
+  }
 
   // Schutz vor versehentlichem Schliessen des Tabs mit ungespeicherten Aenderungen.
   useEffect(() => {

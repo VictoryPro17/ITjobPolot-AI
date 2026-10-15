@@ -22,8 +22,8 @@ export default defineConfig({
         // sie zwischen Deployments weiter aus dem Cache nutzen kann.
         codeSplitting: {
           groups: [
-            { name: "react", test: /node_modules[\/](react|react-dom|react-router|react-router-dom|scheduler)[\/]/ },
-            { name: "query", test: /node_modules[\/]@tanstack[\/]/ },
+            { name: "react", test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
+            { name: "query", test: /node_modules[\\/]@tanstack[\\/]/ },
           ],
         },
       },

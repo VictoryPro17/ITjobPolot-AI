@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -21,13 +21,9 @@ interface AvatarProps {
 }
 
 export function Avatar({ name, className, src, size = "sm" }: AvatarProps) {
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
-
-  const showImage = Boolean(src) && !failed;
+  // Fehlschlag je Bildadresse merken: Ein neues Bild wird automatisch wieder versucht.
+  const [failedSrc, setFailedSrc] = useState<string>();
+  const showImage = Boolean(src) && failedSrc !== src;
 
   return (
     <span
@@ -39,7 +35,7 @@ export function Avatar({ name, className, src, size = "sm" }: AvatarProps) {
       )}
     >
       {showImage ? (
-        <img src={src} alt="" className="h-full w-full rounded-full object-cover" onError={() => setFailed(true)} />
+        <img src={src} alt="" className="h-full w-full rounded-full object-cover" onError={() => setFailedSrc(src)} />
       ) : (
         getInitials(name)
       )}

@@ -59,6 +59,8 @@ export function DetailSidebar({ application }: { application: ApplicationDetail 
   const [description, setDescription] = useState("");
   const [dialogError, setDialogError] = useState("");
   const [actionError, setActionError] = useState("");
+  // Zeitpunkt einmal je Ansicht festhalten (Rendern muss rein sein).
+  const [now] = useState(() => Date.now());
 
   const reminders = useQuery({
     queryKey: ["reminders", "application", application.id],
@@ -128,7 +130,7 @@ export function DetailSidebar({ application }: { application: ApplicationDetail 
   }
 
   const interviewDate = application.interviewAt ? new Date(application.interviewAt) : null;
-  const interviewInFuture = interviewDate !== null && interviewDate.getTime() > Date.now();
+  const interviewInFuture = interviewDate !== null && interviewDate.getTime() > now;
   const openReminders = reminders.data ?? [];
 
   return (

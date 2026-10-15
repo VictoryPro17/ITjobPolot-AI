@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Briefcase, CalendarClock, Pencil, Plus, Search, Trash2 } from "lucide-react";
@@ -187,7 +187,13 @@ export function ApplicationsPage() {
   const [toDelete, setToDelete] = useState<ApplicationListItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => setPage(1), [debouncedSearch]);
+  const [pagedSearch, setPagedSearch] = useState(debouncedSearch);
+
+  // Neue Suche beginnt auf Seite 1 (waehrend des Renderns statt im Effekt).
+  if (debouncedSearch !== pagedSearch) {
+    setPagedSearch(debouncedSearch);
+    setPage(1);
+  }
 
   const summary = useQuery({ queryKey: ["summary"], queryFn: getSummary });
   const applications = useQuery({
@@ -222,9 +228,9 @@ export function ApplicationsPage() {
 
   // Wurde der letzte Eintrag einer Seite geloescht, auf die letzte vorhandene Seite springen.
   const totalPages = applications.data?.totalPages;
-  useEffect(() => {
-    if (totalPages != null && totalPages > 0 && page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  if (totalPages != null && totalPages > 0 && page > totalPages) {
+    setPage(totalPages);
+  }
 
   const items = applications.data?.items ?? [];
   const filtersActive = debouncedSearch !== "" || status !== "";

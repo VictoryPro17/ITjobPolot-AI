@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Briefcase,
   Check,
@@ -49,7 +49,7 @@ const writingStyleLabels: Record<WritingStyle, string> = {
 export function AiAssistantPage() {
   const [searchParams] = useSearchParams();
   // Vorauswahl ueber ?bewerbung=<id>, z. B. aus der Detailseite einer Bewerbung.
-  const [selectedApplicationId, setSelectedApplicationId] = useState(() => searchParams.get("bewerbung") ?? "");
+  const [chosenApplicationId, setSelectedApplicationId] = useState(() => searchParams.get("bewerbung") ?? "");
   const [coverLetterTitle, setCoverLetterTitle] = useState("Anschreiben für die Position");
   const [style, setStyle] = useState<WritingStyle>("Professional");
   const [isDraft, setIsDraft] = useState(true);
@@ -63,33 +63,20 @@ export function AiAssistantPage() {
   const aiStatus = useQuery({ queryKey: ["ai", "status"], queryFn: getAiStatus });
   const aiAvailable = aiStatus.data?.available === true;
 
-  useEffect(() => {
-    const firstApplication = applications.data?.items[0];
-    if (firstApplication && !selectedApplicationId) {
-      setSelectedApplicationId(firstApplication.id);
-      setCoverLetterTitle(`Anschreiben - ${firstApplication.jobTitle}`);
-    }
-  }, [applications.data, selectedApplicationId]);
-
-  useEffect(() => {
-    if (!selectedApplicationId && applications.data?.items[0]) {
-      setSelectedApplicationId(applications.data.items[0].id);
-    }
-  }, [applications.data, selectedApplicationId]);
-
-  useEffect(() => {
-    if (selectedApplicationId && applications.data) {
-      const selected = applications.data.items.find((application) => application.id === selectedApplicationId);
-      if (selected) {
-        setCoverLetterTitle(`Anschreiben - ${selected.jobTitle}`);
-      }
-    }
-  }, [applications.data, selectedApplicationId]);
+  // Ohne eigene Auswahl gilt die erste Bewerbung als ausgewaehlt (abgeleitet statt per Effekt gesetzt).
+  const selectedApplicationId = chosenApplicationId || applications.data?.items[0]?.id || "";
 
   const selectedApplication = useMemo(
     () => applications.data?.items.find((application) => application.id === selectedApplicationId) ?? null,
     [applications.data, selectedApplicationId],
   );
+
+  // Bei einer anderen Bewerbung den Titel vorbelegen; eigene Aenderungen bleiben bis zum naechsten Wechsel.
+  const [titledApplicationId, setTitledApplicationId] = useState("");
+  if (selectedApplication && selectedApplication.id !== titledApplicationId) {
+    setTitledApplicationId(selectedApplication.id);
+    setCoverLetterTitle(`Anschreiben - ${selectedApplication.jobTitle}`);
+  }
 
   const analysisMutation = useMutation({
     mutationFn: (applicationId: string) => analyzeApplication(applicationId),

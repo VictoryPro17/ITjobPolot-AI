@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CalendarX } from "lucide-react";
 
@@ -15,7 +16,8 @@ export function UpcomingInterviews() {
     queryFn: () => getApplications({ search: "", status: "Interview", page: 1, pageSize: 100 }),
   });
 
-  const now = Date.now();
+  // Zeitpunkt einmal je Ansicht festhalten (Rendern muss rein sein).
+  const [now] = useState(() => Date.now());
   const upcoming = (interviews.data?.items ?? [])
     .filter((application) => application.interviewAt != null && new Date(application.interviewAt).getTime() >= now)
     .sort((a, b) => new Date(a.interviewAt!).getTime() - new Date(b.interviewAt!).getTime())

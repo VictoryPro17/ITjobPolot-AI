@@ -155,10 +155,14 @@ export function ApplicationFormPage() {
   const [submitError, setSubmitError] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
 
-  useEffect(() => {
+  const [syncedBaseline, setSyncedBaseline] = useState<ApplicationRequest | null>(null);
+
+  // Geladene Daten waehrend des Renderns uebernehmen (statt im Effekt).
+  if (baseline !== syncedBaseline) {
+    setSyncedBaseline(baseline);
     setForm(baseline);
     setErrors({});
-  }, [baseline]);
+  }
 
   const backTarget = id ? `/bewerbungen/${id}` : "/bewerbungen";
   const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline), [form, baseline]);

@@ -259,7 +259,7 @@ function BoardColumn({
 
   // Alte Abschluesse ausblenden. Bei Sortierung nach letzter Aenderung sind alle noch nicht
   // geladenen Karten nach der ersten alten Karte ebenfalls alt, daher ist die Zahl dann exakt.
-  const cutoff = Date.now() - OLD_CLOSED_DAYS * 24 * 60 * 60 * 1000;
+  const [cutoff] = useState(() => Date.now() - OLD_CLOSED_DAYS * 24 * 60 * 60 * 1000);
   const visible = hideOld ? items.filter((item) => new Date(item.updatedAt).getTime() >= cutoff) : items;
   const hiddenLoaded = items.length - visible.length;
   const restIsOld = hideOld && sort === "updated" && hiddenLoaded > 0;
