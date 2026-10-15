@@ -7,6 +7,35 @@ public class AppOptions
 
     /// <summary>Fuer CORS freigegebene Frontend-Urls.</summary>
     public string[] CorsOrigins { get; set; } = [];
+
+    /// <summary>Basisadresse der Oberflaeche; daraus entstehen die Links in E-Mails.</summary>
+    public string FrontendBaseUrl { get; set; } = "http://localhost:5173";
+}
+
+/// <summary>
+/// SMTP-Versand. Ist <see cref="Enabled"/> false, werden E-Mails nur protokolliert.
+/// Zugangsdaten gehoeren in User Secrets bzw. Umgebungsvariablen.
+/// </summary>
+public class EmailOptions
+{
+    public const string SectionName = "Email";
+
+    public bool Enabled { get; set; }
+
+    public string Host { get; set; } = "localhost";
+
+    public int Port { get; set; } = 587;
+
+    /// <summary>STARTTLS erzwingen (fuer echte Mailserver); fuer lokales Mailpit false.</summary>
+    public bool UseStartTls { get; set; } = true;
+
+    public string? Username { get; set; }
+
+    public string? Password { get; set; }
+
+    public string FromAddress { get; set; } = "no-reply@jobpilot.local";
+
+    public string FromName { get; set; } = "JobPilot";
 }
 
 /// <summary>

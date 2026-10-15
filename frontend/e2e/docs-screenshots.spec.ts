@@ -170,7 +170,19 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     const login = await anonymous.newPage();
     await shoot(login, "/anmelden", "anmeldung");
     await shoot(login, "/registrieren", "registrierung");
+    await shoot(login, "/passwort-vergessen", "passwort-vergessen");
     await anonymous.close();
+
+    // --- Hinweis zur E-Mail-Bestaetigung (Konto noch nicht bestaetigt) ---
+    await deleteAccount(baseURL!, "alex.neu@example.com").catch(() => undefined);
+    const unconfirmed = await registerUser(baseURL!, "Alex", { lastName: "Beispiel", email: "alex.neu@example.com", confirmed: false });
+    try {
+      const hint = await signedInPage(browser, baseURL!, unconfirmed, { ...desktop, colorScheme: "light" });
+      await shoot(hint.page, "/", "email-hinweis");
+      await hint.context.close();
+    } finally {
+      await deleteUser(unconfirmed);
+    }
 
     // --- Pflicht-Einstieg eines neuen Kontos ---
     const newcomer = await registerUser(baseURL!, "Alex", { lastName: "Beispiel", onboarded: false });

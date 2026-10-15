@@ -31,7 +31,7 @@ Die API verwendet ASP.NET Core Identity mit Cookie-Sitzungen (kein JWT).
 - `POST /api/auth/register` und `POST /api/auth/login` setzen das Sitzungscookie `jobpilot.auth`.
 - Das Cookie ist `HttpOnly` und `SameSite=Lax`. Außerhalb der Entwicklungsumgebung ist es zusätzlich nur über HTTPS gültig (`Secure`).
 - Die Sitzung läuft nach 14 Tagen ab und verlängert sich bei Nutzung (Sliding Expiration).
-- Alle Endpunkte außer Registrierung, Anmeldung und Health erfordern eine gültige Sitzung. Fehlt sie, antwortet die API mit `401 Unauthorized` (keine Weiterleitung auf eine Anmeldeseite).
+- Alle Endpunkte außer Registrierung, Anmeldung, den Endpunkten für Passwort-Zurücksetzen und E-Mail-Bestätigung (`forgot-password`, `reset-password`, `confirm-email`) und Health erfordern eine gültige Sitzung. Fehlt sie, antwortet die API mit `401 Unauthorized` (keine Weiterleitung auf eine Anmeldeseite).
 - Nach 5 fehlgeschlagenen Anmeldeversuchen wird das Konto für 15 Minuten gesperrt.
 
 Clients müssen das Cookie bei jeder Anfrage mitsenden (Browser: automatisch; `curl`: `-c` und `-b`).
@@ -100,7 +100,7 @@ Die Begrenzung erfolgt pro IP-Adresse in einem festen Zeitfenster von einer Minu
 | Policy | Standardwert | Konfigurationsschlüssel | Gilt für |
 |--------|--------------|-------------------------|----------|
 | Global | 120 Anfragen pro Minute | `RateLimiting:GlobalPermitLimit` | alle Endpunkte |
-| `auth` | 10 Anfragen pro Minute | `RateLimiting:AuthPermitLimit` | `register`, `login`, `change-password`, `export`, `DELETE account` |
+| `auth` | 10 Anfragen pro Minute | `RateLimiting:AuthPermitLimit` | `register`, `login`, `forgot-password`, `reset-password`, `confirm-email`, `resend-confirmation`, `change-password`, `export`, `DELETE account` |
 
 Beide Grenzen gelten gleichzeitig; für die genannten Auth-Endpunkte greift zusätzlich die globale Grenze. Die Werte lassen sich über die Konfiguration (z. B. `appsettings.json` oder Umgebungsvariablen) ändern. Werte unter 1 werden auf 1 angehoben.
 
@@ -112,8 +112,12 @@ Basis: `/api/auth`
 
 | Methode | Pfad | Beschreibung | Auth |
 |---------|------|--------------|------|
-| POST | `/api/auth/register` | Legt ein Konto an und meldet den Benutzer direkt an (setzt das Cookie). Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/register` | Legt ein Konto an, meldet den Benutzer direkt an (setzt das Cookie) und reiht eine Bestätigungsmail ein. Rate-Limit `auth`. | Öffentlich |
 | POST | `/api/auth/login` | Meldet an und setzt das Cookie. Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/forgot-password` | Verschickt einen Link zum Zurücksetzen des Passworts (`204`, immer). Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/reset-password` | Setzt mit dem Token aus der E-Mail ein neues Passwort (`204`). Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/confirm-email` | Bestätigt die E-Mail-Adresse mit dem Token aus der Bestätigungsmail (`204`). Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/resend-confirmation` | Verschickt die Bestätigungsmail erneut (`204`). Rate-Limit `auth`. | Sitzung |
 | POST | `/api/auth/logout` | Beendet die Sitzung (`204`). | Sitzung |
 | GET | `/api/auth/me` | Liefert das Profil des angemeldeten Benutzers. | Sitzung |
 | PUT | `/api/auth/profile` | Aktualisiert die Profildaten. | Sitzung |
@@ -139,6 +143,8 @@ Antwort: `201 Created` mit dem Benutzerprofil (siehe unten), Header `Location: /
 
 Ist die E-Mail-Adresse bereits registriert, antwortet die API mit `409 Conflict`.
 
+Nach dem Anlegen reiht die API eine Bestätigungsmail in die Versandwarteschlange ein (siehe [E-Mail-Links und Tokens](#e-mail-links-und-tokens)). Die Anmeldung ist auch ohne Bestätigung möglich; im Profil ist `emailConfirmed` dann `false`.
+
 ### POST /api/auth/login
 
 | Feld | Typ | Pflicht | Regeln |
@@ -148,6 +154,57 @@ Ist die E-Mail-Adresse bereits registriert, antwortet die API mit `409 Conflict`
 | `rememberMe` | boolean | nein | Standard `true` |
 
 Antwort: `200 OK` mit dem Benutzerprofil. Bei falschen Zugangsdaten und bei gesperrtem Konto antwortet die API mit `400 Bad Request` und dem Fehlerschlüssel `credentials` (nicht mit `401`). Die Meldung ist für unbekannte Adressen und falsche Passwörter identisch.
+
+### POST /api/auth/forgot-password
+
+| Feld | Typ | Pflicht | Regeln |
+|------|-----|---------|--------|
+| `email` | string | ja | gültige E-Mail-Adresse, höchstens 256 Zeichen |
+
+Antwort: immer `204 No Content`, unabhängig davon, ob zur Adresse ein Konto existiert. So lässt sich über diesen Endpunkt nicht herausfinden, welche Adressen registriert sind. Existiert ein Konto, wird eine E-Mail mit Link in die Versandwarteschlange gelegt und im Hintergrund versendet; die Antwortzeit hängt deshalb nicht vom Mailserver ab. Der Link ist 2 Stunden gültig und funktioniert nur einmal. Nur eine ungültige Adresse (Format, Länge) führt zu `400`.
+
+### POST /api/auth/reset-password
+
+| Feld | Typ | Pflicht | Regeln |
+|------|-----|---------|--------|
+| `email` | string | ja | gültige E-Mail-Adresse |
+| `token` | string | ja | nicht leer, höchstens 2048 Zeichen; der Wert aus dem Link, unverändert |
+| `newPassword` | string | ja | 10 bis 128 Zeichen, mindestens ein Großbuchstabe, ein Kleinbuchstabe und eine Ziffer |
+
+Antworten:
+
+- `204 No Content`: Das Passwort wurde geändert. Die E-Mail-Adresse gilt danach als bestätigt, und eine Kontosperre nach Fehlversuchen wird aufgehoben. Das Token ist damit verbraucht.
+- `400 Bad Request` mit Fehlerschlüssel `token`: Token ungültig, abgelaufen, bereits verwendet oder nicht zur Adresse passend. Die Meldung ist in allen Fällen gleich, auch bei unbekannter Adresse.
+- `400 Bad Request` mit Fehlerschlüssel `NewPassword`: Das neue Passwort erfüllt die Regeln nicht.
+
+### POST /api/auth/confirm-email
+
+| Feld | Typ | Pflicht | Regeln |
+|------|-----|---------|--------|
+| `userId` | GUID | ja | nicht leer; der Wert aus dem Link |
+| `token` | string | ja | nicht leer, höchstens 2048 Zeichen; der Wert aus dem Link, unverändert |
+
+Antworten:
+
+- `204 No Content`: Die Adresse ist bestätigt. Das gilt auch, wenn sie bereits bestätigt war, sodass ein zweiter Klick auf den Link nicht fehlschlägt.
+- `400 Bad Request` mit Fehlerschlüssel `token`: Token ungültig oder abgelaufen (Gültigkeit 3 Tage) oder Konto unbekannt.
+
+Der Endpunkt verlangt keine Sitzung, damit der Link auch in einem anderen Browser funktioniert.
+
+### POST /api/auth/resend-confirmation
+
+Ohne Anfragekörper. Verschickt die Bestätigungsmail für den angemeldeten Benutzer erneut und antwortet mit `204 No Content`. Ist die Adresse bereits bestätigt, passiert nichts (ebenfalls `204`). Ohne Sitzung antwortet die API mit `401`. Wiederholte Aufrufe begrenzt das Rate-Limit `auth`.
+
+### E-Mail-Links und Tokens
+
+Die Links in den E-Mails verweisen auf das Frontend, nicht auf die API. Ihre Basis ist `App:FrontendBaseUrl`:
+
+| Zweck | Link |
+|-------|------|
+| Passwort zurücksetzen | `{FrontendBaseUrl}/passwort-zuruecksetzen?email=…&token=…` |
+| E-Mail bestätigen | `{FrontendBaseUrl}/email-bestaetigen?userId=…&token=…` |
+
+Das `token` im Link ist das Identity-Token als URL-sicheres Base64 (Base64Url) kodiert, weil das Original `+`, `/` und `=` enthalten kann. Clients übergeben den Wert aus dem Link unverändert im Feld `token`; ein selbst dekodierter oder abgeänderter Wert wird mit `400` abgewiesen. Beide Token-Arten werden mit dem Sicherheitsstempel des Kontos ungültig, zum Beispiel nach einer Passwortänderung.
 
 ### Benutzerprofil (Antwort von register, login, me, profile, avatar)
 
@@ -170,6 +227,7 @@ Antwort: `200 OK` mit dem Benutzerprofil. Bei falschen Zugangsdaten und bei gesp
 | `avatarVersion` | number | Zeitstempel der letzten Bildänderung in Millisekunden (Unix-Zeit); nur vorhanden, wenn ein Profilbild existiert |
 | `accentColor` | string | Akzentfarbe |
 | `onboardingCompleted` | bool | `true`, sobald der Pflicht-Einstieg nach der Registrierung abgeschlossen ist; bei neuen Konten zunächst `false` |
+| `emailConfirmed` | bool | `true`, sobald die E-Mail-Adresse über den Link in der Bestätigungsmail bestätigt wurde (oder das Passwort über einen Reset-Link zurückgesetzt wurde); bei neuen Konten zunächst `false`, bei Konten aus der Zeit davor `true` |
 
 ### PUT /api/auth/profile
 

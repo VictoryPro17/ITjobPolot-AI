@@ -41,6 +41,7 @@ mit einem ASP.NET-Core-10-Backend in Clean Architecture und einem React-19-Front
 | Backend   | .NET 10, ASP.NET Core Web API, Entity Framework Core 10, ASP.NET Core Identity, Serilog |
 | Datenbank | PostgreSQL 17 (Docker) |
 | Frontend  | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, Recharts, Lucide |
+| E-Mail    | MailKit (SMTP), Mailpit für die Entwicklung |
 | Tests     | xUnit, Playwright |
 | Werkzeuge | Visual Studio 2026, Docker Compose, dotnet-ef |
 
@@ -72,6 +73,16 @@ der Abschluss wird serverseitig beim Speichern des Profils entschieden. Bestehen
 abgeschlossen.
 
 <img src="docs/screenshots/willkommen.png" width="70%" alt="Willkommensseite mit den Optionen Lebenslauf hochladen und Selbst ausfüllen">
+
+### Konto, E-Mail-Bestätigung und Passwort zurücksetzen
+
+Nach der Registrierung verschickt JobPilot automatisch eine Bestätigungsmail; bis zur Bestätigung weist ein
+Hinweisbalken mit „Erneut senden“ darauf hin, die Anmeldung funktioniert aber schon vorher. Wer das Passwort
+vergessen hat, fordert über „Passwort vergessen?“ auf der Anmeldeseite einen Link an, der 2 Stunden gültig ist
+und nur einmal funktioniert. Die Registrierung zeigt die Passwortregeln live als Checkliste. In der Entwicklung
+landen alle E-Mails in Mailpit (http://localhost:8025).
+
+<img src="docs/screenshots/anmeldung.png" width="100%" alt="Anmeldeseite mit Link Passwort vergessen">
 
 ### Kanban-Board
 
@@ -187,6 +198,11 @@ docker compose up -d
 Startet PostgreSQL 17 auf Port `5432` mit Datenbank, Benutzer und Passwort `jobpilot` /
 `jobpilot` / `jobpilot_dev`. Diese Zugangsdaten gelten **ausschließlich** für die lokale Entwicklung.
 
+Zusätzlich startet der Befehl Mailpit, einen Test-Mailserver für die Entwicklung (SMTP auf Port `1025`,
+nur lokal erreichbar). Er fängt alle E-Mails ab, die JobPilot verschickt (Bestätigung der E-Mail-Adresse,
+Passwort zurücksetzen); nichts verlässt den Rechner. Den Posteingang siehst du im Browser unter
+**http://localhost:8025**.
+
 ### 2. Datenbankschema anlegen
 
 ```bash
@@ -226,13 +242,13 @@ Nach der einmaligen Einrichtung genügen drei Schritte, jeweils in einem eigenen
 
 | Schritt | PowerShell (Windows) | Bash |
 |---------|----------------------|------|
-| 1. Datenbank | `docker compose up -d` | `docker compose up -d` |
+| 1. Datenbank und Mailpit | `docker compose up -d` | `docker compose up -d` |
 | 2. API | `dotnet run --project src/JobPilot.Api` | `dotnet run --project src/JobPilot.Api` |
 | 3. Web-App | `cd frontend; npm run dev` | `cd frontend && npm run dev` |
 | 4. KI (optional) | `ollama serve` | `ollama serve` |
 
 Danach ist die Anwendung unter **http://localhost:5173** erreichbar, die API unter
-**http://localhost:5042**. Die API wendet ausstehende Migrationen beim Start automatisch an. Läuft Ollama
+**http://localhost:5042**. E-Mails (Bestätigung, Passwort zurücksetzen) erscheinen in Mailpit unter **http://localhost:8025**. Die API wendet ausstehende Migrationen beim Start automatisch an. Läuft Ollama
 bereits (z. B. als Hintergrunddienst), meldet `ollama serve`, dass die Adresse belegt ist; das ist in Ordnung.
 
 ## Konfiguration
@@ -244,6 +260,15 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 |-------------|-------------------|----------|-----------|
 | `ConnectionStrings:Default` | `ConnectionStrings__Default` | lokale Docker-Datenbank | PostgreSQL-Verbindung |
 | `App:CorsOrigins` | `App__CorsOrigins__0` | `http://localhost:5173` | Erlaubte Frontend-Origins |
+| `App:FrontendBaseUrl` | `App__FrontendBaseUrl` | `http://localhost:5173` | Basisadresse der Oberfläche; daraus entstehen die Links in E-Mails |
+| `Email:Enabled` | `Email__Enabled` | `false` | `true` versendet über SMTP; `false` verschickt nichts, in Development steht der Mailtext (mit Link) im API-Log. Development setzt `true` für Mailpit. |
+| `Email:Host` | `Email__Host` | `localhost` | SMTP-Server |
+| `Email:Port` | `Email__Port` | `587` | SMTP-Port (Development: `1025` für Mailpit) |
+| `Email:UseStartTls` | `Email__UseStartTls` | `true` | STARTTLS verwenden (Development: `false` für Mailpit) |
+| `Email:Username` | `Email__Username` | leer | SMTP-Benutzer; **nur über User Secrets oder Umgebungsvariablen setzen** |
+| `Email:Password` | `Email__Password` | leer | SMTP-Passwort; **nur über User Secrets oder Umgebungsvariablen setzen** |
+| `Email:FromAddress` | `Email__FromAddress` | `no-reply@jobpilot.local` | Absenderadresse |
+| `Email:FromName` | `Email__FromName` | `JobPilot` | Absendername |
 | `Storage:UploadRoot` | `Storage__UploadRoot` | `uploads` | Ablage für Benutzerdokumente |
 | `Storage:MaxFileSizeInBytes` | `Storage__MaxFileSizeInBytes` | `10485760` | Maximale Dateigröße (10 MB) |
 | `Storage:MaxDocumentsPerUser` | `Storage__MaxDocumentsPerUser` | `100` | Maximale Anzahl Dokumente pro Benutzer |
@@ -255,7 +280,7 @@ Umgebungsvariable überschreiben (`__` trennt die Ebenen).
 | `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |
 | `Ai:DailyRequestLimitPerUser` | `Ai__DailyRequestLimitPerUser` | `25` | Kostenbremse pro Benutzer und Tag |
 | `RateLimiting:GlobalPermitLimit` | `RateLimiting__GlobalPermitLimit` | `120` | Anfragen pro IP und Minute |
-| `RateLimiting:AuthPermitLimit` | `RateLimiting__AuthPermitLimit` | `10` | Anmeldungen/Registrierungen pro IP und Minute |
+| `RateLimiting:AuthPermitLimit` | `RateLimiting__AuthPermitLimit` | `10` | Anmeldungen, Registrierungen und Anfragen rund um Passwort und E-Mail-Bestätigung pro IP und Minute |
 
 ### Secrets niemals committen
 
@@ -263,6 +288,13 @@ API-Schlüssel gehören ausschließlich in die User Secrets:
 
 ```bash
 dotnet user-secrets set "Ai:ApiKey" "<ihr-schluessel>" --project src/JobPilot.Api
+```
+
+SMTP-Zugangsdaten für einen echten Mailserver ebenso:
+
+```bash
+dotnet user-secrets set "Email:Username" "<benutzer>" --project src/JobPilot.Api
+dotnet user-secrets set "Email:Password" "<passwort>" --project src/JobPilot.Api
 ```
 
 Frontend-Variablen für Vite:
@@ -313,7 +345,7 @@ cd frontend && npm run build
 ### Browser-Tests (Playwright)
 
 Die Tests in `frontend/e2e/` laufen gegen die lokale Umgebung in Chromium – Desktop hell, Desktop dunkel
-und Handybreite. Jeder Test legt ein eigenes Konto an und löscht es am Ende wieder.
+und Handybreite. Jeder Test legt ein eigenes Konto an und löscht es am Ende wieder. Die Tests lesen Bestätigungs- und Reset-Links aus echten E-Mails; **Mailpit muss deshalb laufen** (`docker compose up -d`, Standardadresse `http://127.0.0.1:8025`, änderbar über die Umgebungsvariable `E2E_MAILPIT_URL`). Ohne Mailpit bricht das Setup mit einer Fehlermeldung ab.
 
 ```bash
 # einmalig
@@ -360,6 +392,8 @@ z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://lo
 | Vite meldet *Port 5173 is in use* | Web-App läuft bereits | Vorhandene Instanz im Browser öffnen |
 | *Die Datenbank ist nicht erreichbar* / `/api/health/database` schlägt fehl | Docker Desktop oder der Container läuft nicht | Docker starten, `docker compose up -d`, mit `docker ps` prüfen |
 | Browser-Tests scheitern mit **429 Too Many Requests** | Rate-Limits der API greifen | API mit erhöhten `RateLimiting__*`-Werten starten (siehe [Browser-Tests](#browser-tests-playwright)) |
+| Keine E-Mails kommen an (Bestätigung, Passwort zurücksetzen) | Mailpit läuft nicht, oder `Email:Enabled` ist `false` | `docker compose up -d` und Posteingang unter http://localhost:8025 prüfen. Bei `Email:Enabled=false` wird nichts versendet; in Development steht der Link im Text der Log-Ausgabe der API. |
+| Browser-Tests: Mailpit nicht erreichbar, obwohl der Container läuft | `localhost` wird teils zu IPv6 aufgelöst, Mailpit lauscht nur auf IPv4 | Standardmäßig wird `127.0.0.1` verwendet; bei abweichender Adresse `E2E_MAILPIT_URL` setzen (z. B. `http://127.0.0.1:8025`) |
 | Playwright: *Executable doesn't exist* | Browser nicht installiert | `npx playwright install chromium` im Ordner `frontend` |
 | KI-Assistent zeigt „KI nicht erreichbar – regelbasiert“ | Ollama läuft nicht oder Modell fehlt | `ollama serve` und `ollama pull qwen2.5:3b`; Zustand unter `GET /api/ai/status` |
 | Erste KI-Analyse dauert sehr lange | Das Modell wird beim ersten Aufruf geladen | Einmal abwarten; folgende Aufrufe sind deutlich schneller |
@@ -370,8 +404,14 @@ z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://lo
   fünf Fehlversuchen für 15 Minuten.
 * `HttpOnly`-, `Secure`- und `SameSite`-Cookies.
 * Serverseitige Autorisierung; alle Abfragen filtern zwingend nach der `UserId` aus den Claims.
-* Rate Limiting pro IP: 120 Anfragen pro Minute, für Anmeldung und Registrierung 10 pro Minute
-  (über `RateLimiting:*` konfigurierbar).
+* Rate Limiting pro IP: 120 Anfragen pro Minute, für Anmeldung, Registrierung sowie Passwort-Zurücksetzen und
+  E-Mail-Bestätigung 10 pro Minute (über `RateLimiting:*` konfigurierbar).
+* Passwort zurücksetzen ohne Kontoabfrage: `POST /api/auth/forgot-password` antwortet immer mit 204, egal ob die
+  Adresse existiert. Die E-Mail wird über eine Warteschlange im Hintergrund versendet, sodass auch die
+  Antwortzeit nichts verrät. Die Links enthalten Einmal-Tokens (Reset 2 Stunden, E-Mail-Bestätigung 3 Tage), die
+  mit dem Sicherheitsstempel des Kontos ungültig werden, etwa nach einer Passwortänderung.
+* SMTP-Zugangsdaten gehören in User Secrets oder Umgebungsvariablen; ohne SMTP-Konfiguration schreibt die API
+  außerhalb von Development keine Links ins Log.
 * Restriktive CORS-Konfiguration auf konfigurierte Origins.
 * Zentrale Fehler-Middleware, die keine internen Details nach außen gibt.
 * Dateiuploads (PDF, DOCX, TXT, MD, PNG, JPG) mit Größenbegrenzung, Prüfung der Dateisignatur
@@ -394,7 +434,7 @@ z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://lo
     e2e/                      Playwright-Tests und Skript für Dokumentations-Screenshots
   docs/                       Benutzerhandbuch, API-Referenz, Architektur
     screenshots/              Screenshots (erzeugt mit npm run docs:screenshots)
-  docker-compose.yml          PostgreSQL 17
+  docker-compose.yml          PostgreSQL 17, Mailpit
 ```
 
 ## Weitere Dokumentation

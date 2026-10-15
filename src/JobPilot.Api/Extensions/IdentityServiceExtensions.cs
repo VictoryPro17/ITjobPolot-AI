@@ -1,7 +1,9 @@
 ﻿using JobPilot.Domain.Entities;
 using JobPilot.Infrastructure.Persistence;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace JobPilot.Api.Extensions;
 
@@ -28,12 +30,26 @@ public static class IdentityServiceExtensions
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 options.Lockout.AllowedForNewUsers = true;
 
+                // Bestaetigung ist erwuenscht, aber keine Voraussetzung fuer die Anmeldung.
                 options.SignIn.RequireConfirmedAccount = false;
+
+                // Bestaetigungslinks laufen laenger als Passwort-Links (eigener Anbieter, siehe unten).
+                options.Tokens.EmailConfirmationTokenProvider = EmailConfirmationTokenProvider.ProviderName;
             })
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<JobPilotDbContext>()
             .AddSignInManager()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<EmailConfirmationTokenProvider>(EmailConfirmationTokenProvider.ProviderName);
+
+        // Links zum Zuruecksetzen des Passworts gelten 2 Stunden (Standard-Anbieter),
+        // Bestaetigungslinks 3 Tage. Beide werden mit dem Sicherheitsstempel ungueltig.
+        services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromHours(2));
+        services.Configure<EmailConfirmationTokenProviderOptions>(options =>
+        {
+            options.Name = EmailConfirmationTokenProvider.ProviderName;
+            options.TokenLifespan = TimeSpan.FromDays(3);
+        });
 
         // Identity-Cookies statt JWT: Das Frontend laeuft als First-Party-SPA,
         // HttpOnly-Cookies schuetzen das Sitzungstoken zuverlaessig vor XSS-Zugriff.
@@ -71,4 +87,17 @@ public static class IdentityServiceExtensions
 
         return services;
     }
+}
+
+/// <summary>Optionen des Anbieters fuer Bestaetigungslinks (eigene Gueltigkeitsdauer).</summary>
+public class EmailConfirmationTokenProviderOptions : DataProtectionTokenProviderOptions;
+
+/// <summary>Token-Anbieter fuer E-Mail-Bestaetigungen mit eigener, laengerer Gueltigkeitsdauer.</summary>
+public class EmailConfirmationTokenProvider(
+    IDataProtectionProvider dataProtectionProvider,
+    IOptions<EmailConfirmationTokenProviderOptions> options,
+    ILogger<DataProtectorTokenProvider<ApplicationUser>> logger)
+    : DataProtectorTokenProvider<ApplicationUser>(dataProtectionProvider, options, logger)
+{
+    public const string ProviderName = "EmailConfirmation";
 }

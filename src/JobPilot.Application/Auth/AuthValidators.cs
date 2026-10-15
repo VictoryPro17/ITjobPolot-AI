@@ -11,7 +11,7 @@ public static class PasswordRules
     public const int MinimumLength = 10;
 
     public static IRuleBuilderOptions<T, string> Password<T>(this IRuleBuilder<T, string> rule) =>
-        rule.NotEmpty().WithMessage("Bitte geben Sie ein Passwort ein.")
+        rule.NotEmpty().WithMessage("Bitte gib ein Passwort ein.")
             .MinimumLength(MinimumLength)
             .WithMessage($"Das Passwort muss mindestens {MinimumLength} Zeichen lang sein.")
             .MaximumLength(128).WithMessage("Das Passwort darf höchstens 128 Zeichen lang sein.")
@@ -25,8 +25,8 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
     public RegisterRequestValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte geben Sie eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.")
+            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.")
             .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
 
         RuleFor(x => x.Password).Password();
@@ -44,11 +44,50 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     public LoginRequestValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte geben Sie eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Bitte geben Sie Ihr Passwort ein.");
+            .NotEmpty().WithMessage("Bitte gib dein Passwort ein.");
+    }
+}
+
+public class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRequest>
+{
+    public ForgotPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.")
+            .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
+    }
+}
+
+public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequest>
+{
+    public ResetPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
+
+        RuleFor(x => x.Token)
+            .NotEmpty().WithMessage("Der Link ist unvollständig. Bitte fordere einen neuen an.")
+            .MaximumLength(2048).WithMessage("Der Link ist ungültig. Bitte fordere einen neuen an.");
+
+        RuleFor(x => x.NewPassword).Password();
+    }
+}
+
+public class ConfirmEmailRequestValidator : AbstractValidator<ConfirmEmailRequest>
+{
+    public ConfirmEmailRequestValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty().WithMessage("Der Bestätigungslink ist unvollständig.");
+
+        RuleFor(x => x.Token)
+            .NotEmpty().WithMessage("Der Bestätigungslink ist unvollständig.")
+            .MaximumLength(2048).WithMessage("Der Bestätigungslink ist ungültig.");
     }
 }
 
@@ -57,7 +96,7 @@ public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRe
     public ChangePasswordRequestValidator()
     {
         RuleFor(x => x.CurrentPassword)
-            .NotEmpty().WithMessage("Bitte geben Sie Ihr aktuelles Passwort ein.");
+            .NotEmpty().WithMessage("Bitte gib dein aktuelles Passwort ein.");
 
         RuleFor(x => x.NewPassword).Password();
 

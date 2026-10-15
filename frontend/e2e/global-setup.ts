@@ -18,4 +18,12 @@ export default async function globalSetup() {
   if (!response.ok) {
     throw new Error(`Die Datenbank ist nicht erreichbar (HTTP ${response.status}). Laeuft der PostgreSQL-Container?`);
   }
+
+  // Mailpit faengt die E-Mails ab (Bestaetigung, Passwort zuruecksetzen).
+  const mailpitUrl = process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:8025";
+  try {
+    await fetch(`${mailpitUrl}/api/v1/info`);
+  } catch {
+    throw new Error(`Mailpit ist unter ${mailpitUrl} nicht erreichbar. Starte es mit: docker compose up -d`);
+  }
 }

@@ -9,6 +9,7 @@ using JobPilot.Application.Common;
 using JobPilot.Application.Matching;
 using JobPilot.Application.Profile;
 using JobPilot.Domain.Constants;
+using JobPilot.Infrastructure.Email;
 using JobPilot.Infrastructure.Services;
 using JobPilot.Domain.Entities;
 using JobPilot.Domain.Enums;
@@ -36,10 +37,16 @@ public class AuthController(
     IAccountService accountService,
     IAvatarService avatarService,
     IOptions<StorageOptions> storageOptions,
+    IOptions<AppOptions> appOptions,
+    IEmailQueue emailQueue,
     TimeProvider timeProvider,
     ILogger<AuthController> logger) : ControllerBase
 {
     private readonly StorageOptions _storageOptions = storageOptions.Value;
+    private readonly AppOptions _appOptions = appOptions.Value;
+
+    private const string InvalidResetLinkMessage = "Der Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.";
+    private const string InvalidConfirmationLinkMessage = "Der Bestätigungslink ist ungültig oder abgelaufen. Du kannst in der App einen neuen anfordern.";
 
     /// <summary>Legt ein neues Konto an und meldet den Benutzer direkt an.</summary>
     [HttpPost("register")]
@@ -72,6 +79,7 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, Roles.User);
         await signInManager.SignInAsync(user, isPersistent: true);
+        await QueueConfirmationEmailAsync(user, HttpContext.RequestAborted);
 
         logger.LogInformation("Neues Benutzerkonto {UserId} angelegt.", user.Id);
 
@@ -99,7 +107,7 @@ public class AuthController(
         {
             throw new ValidationFailedException(
                 "credentials",
-                "Das Konto ist nach mehreren Fehlversuchen vorübergehend gesperrt. Bitte versuchen Sie es in 15 Minuten erneut.");
+                "Das Konto ist nach mehreren Fehlversuchen vorübergehend gesperrt. Bitte versuche es in 15 Minuten erneut.");
         }
 
         if (!result.Succeeded)
@@ -109,6 +117,110 @@ public class AuthController(
         }
 
         return Ok(await BuildResponseAsync(user));
+    }
+
+    /// <summary>
+    /// Verschickt einen Link zum Zuruecksetzen des Passworts. Antwortet immer mit 204, damit sich nicht
+    /// erkennen laesst, ob zu einer Adresse ein Konto existiert; der Versand laeuft im Hintergrund.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+
+        if (user?.Email is not null)
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var link = AccountEmails.BuildLink(_appOptions.FrontendBaseUrl, AccountEmails.ResetPasswordPath, new Dictionary<string, string>
+            {
+                ["email"] = user.Email,
+                ["token"] = AccountEmails.EncodeToken(token)
+            });
+
+            await emailQueue.EnqueueAsync(AccountEmails.PasswordReset(user.Email, user.FirstName, link), cancellationToken);
+            logger.LogInformation("Passwort-Reset fuer {UserId} angefordert.", user.Id);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>Setzt mit dem Token aus der E-Mail ein neues Passwort. Das Token gilt nur einmal.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+        var token = AccountEmails.DecodeToken(request.Token);
+
+        if (user is null || token is null)
+        {
+            throw new ValidationFailedException("token", InvalidResetLinkMessage);
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            throw result.Errors.Any(error => error.Code == "InvalidToken")
+                ? new ValidationFailedException("token", InvalidResetLinkMessage)
+                : ToValidationException(result, nameof(request.NewPassword));
+        }
+
+        // Wer den Link aus der E-Mail nutzt, hat Zugriff auf das Postfach: Adresse gilt als bestaetigt.
+        // Eine Sperre nach Fehlversuchen wird aufgehoben, damit die Anmeldung sofort klappt.
+        user.EmailConfirmed = true;
+        await userManager.UpdateAsync(user);
+        await userManager.ResetAccessFailedCountAsync(user);
+        await userManager.SetLockoutEndDateAsync(user, null);
+
+        logger.LogInformation("Passwort fuer {UserId} ueber E-Mail-Link zurueckgesetzt.", user.Id);
+        return NoContent();
+    }
+
+    /// <summary>Bestaetigt die E-Mail-Adresse mit dem Token aus der Bestaetigungsmail.</summary>
+    [HttpPost("confirm-email")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailRequest request)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId.ToString());
+        var token = AccountEmails.DecodeToken(request.Token);
+
+        if (user is null || token is null)
+        {
+            throw new ValidationFailedException("token", InvalidConfirmationLinkMessage);
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return NoContent();
+        }
+
+        var result = await userManager.ConfirmEmailAsync(user, token);
+        if (!result.Succeeded)
+        {
+            throw new ValidationFailedException("token", InvalidConfirmationLinkMessage);
+        }
+
+        logger.LogInformation("E-Mail-Adresse von {UserId} bestaetigt.", user.Id);
+        return NoContent();
+    }
+
+    /// <summary>Verschickt die Bestaetigungsmail fuer den angemeldeten Benutzer erneut.</summary>
+    [HttpPost("resend-confirmation")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendConfirmation(CancellationToken cancellationToken)
+    {
+        var user = await GetCurrentUserAsync();
+        if (!user.EmailConfirmed)
+        {
+            await QueueConfirmationEmailAsync(user, cancellationToken);
+        }
+
+        return NoContent();
     }
 
     /// <summary>Beendet die Sitzung und loescht das Cookie.</summary>
@@ -170,7 +282,7 @@ public class AuthController(
     {
         if (file is null || file.Length == 0)
         {
-            throw new ValidationFailedException("file", "Bitte wählen Sie eine gültige Datei aus.");
+            throw new ValidationFailedException("file", "Bitte wähle eine gültige Datei aus.");
         }
 
         if (file.Length > _storageOptions.MaxFileSizeInBytes)
@@ -370,7 +482,8 @@ public class AuthController(
             user.CreatedAt,
             user.AvatarStoragePath is null ? null : user.AvatarUpdatedAt?.ToUnixTimeMilliseconds(),
             user.AccentColor,
-            user.OnboardingCompletedAt is not null);
+            user.OnboardingCompletedAt is not null,
+            user.EmailConfirmed);
     }
 
     private static string? Normalize(string? value) =>
@@ -382,6 +495,23 @@ public class AuthController(
             .Select(SkillCatalog.Canonicalize)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList() ?? [];
+
+    private async Task QueueConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        if (user.Email is null)
+        {
+            return;
+        }
+
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var link = AccountEmails.BuildLink(_appOptions.FrontendBaseUrl, AccountEmails.ConfirmEmailPath, new Dictionary<string, string>
+        {
+            ["userId"] = user.Id.ToString(),
+            ["token"] = AccountEmails.EncodeToken(token)
+        });
+
+        await emailQueue.EnqueueAsync(AccountEmails.Confirmation(user.Email, user.FirstName, link), cancellationToken);
+    }
 
     private static ValidationFailedException ToValidationException(IdentityResult result, string field)
     {
@@ -400,7 +530,7 @@ public class AuthController(
         "PasswordRequiresUpper" => "Das Passwort muss mindestens einen Großbuchstaben enthalten.",
         "PasswordMismatch" => "Das aktuelle Passwort ist falsch.",
         "DuplicateUserName" or "DuplicateEmail" => "Für diese E-Mail-Adresse besteht bereits ein Konto.",
-        "InvalidEmail" => "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        "InvalidEmail" => "Bitte gib eine gültige E-Mail-Adresse ein.",
         _ => error.Description
     };
 }

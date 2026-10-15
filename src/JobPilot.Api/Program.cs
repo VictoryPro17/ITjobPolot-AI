@@ -29,6 +29,7 @@ builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptio
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
 builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJobPilotIdentity(builder.Environment);

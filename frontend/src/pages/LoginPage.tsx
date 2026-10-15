@@ -1,11 +1,15 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { useAuth } from "@/features/auth/AuthProvider";
-import { ApiError } from "@/lib/api";
+import { AuthLayout } from "@/components/layout/AuthLayout";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { Logo } from "@/components/brand/Logo";
-import { Card, CardBody } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { useAuth } from "@/features/auth/AuthProvider";
+import { PasswordInput } from "@/features/auth/PasswordInput";
+import { ApiError } from "@/lib/api";
+
+const linkClass = "font-medium text-primary-text hover:underline";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -26,42 +30,41 @@ export function LoginPage() {
       const destination = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(destination, { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "Die Anmeldung ist fehlgeschlagen.");
+      setError(requestError instanceof ApiError ? (requestError.fieldErrors.credentials ?? requestError.message) : "Die Anmeldung ist fehlgeschlagen.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-      <Card className="w-full max-w-md">
-        <CardBody className="space-y-6 p-6 sm:p-8">
-          <div>
-            <Logo />
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Willkommen zurück</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Melden Sie sich an, um Ihre Bewerbungen zu verwalten.</p>
+    <AuthLayout
+      title="Willkommen zurück"
+      description="Melde dich an, um deine Bewerbungen zu verwalten."
+      footer={
+        <>
+          Noch kein Konto? <Link className={linkClass} to="/registrieren">Jetzt registrieren</Link>
+        </>
+      }
+    >
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-1.5">
+          <label htmlFor="login-email" className="text-sm font-medium">E-Mail-Adresse</label>
+          <Input id="login-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" />
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="login-password" className="text-sm font-medium">Passwort</label>
+            <Link to="/passwort-vergessen" className="text-xs font-medium text-primary-text hover:underline">Passwort vergessen?</Link>
           </div>
-          {error ? <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <label className="block text-sm font-medium">
-              E-Mail-Adresse
-              <input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" />
-            </label>
-            <label className="block text-sm font-medium">
-              Passwort
-              <input className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
-              Angemeldet bleiben
-            </label>
-            <Button className="w-full" type="submit" disabled={isSubmitting}>{isSubmitting ? "Anmeldung läuft..." : "Anmelden"}</Button>
-          </form>
-          <p className="text-center text-sm text-muted-foreground">
-            Noch kein Konto? <Link className="font-medium text-primary hover:underline" to="/registrieren">Jetzt registrieren</Link>
-          </p>
-        </CardBody>
-      </Card>
-    </main>
+          <PasswordInput id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete="current-password" />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+          Angemeldet bleiben
+        </label>
+        <Button className="w-full" type="submit" loading={isSubmitting}>Anmelden</Button>
+      </form>
+    </AuthLayout>
   );
 }

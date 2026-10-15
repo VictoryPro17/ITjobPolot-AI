@@ -5,6 +5,7 @@ Dieses Handbuch zeigt dir Schritt für Schritt, wie du mit JobPilot AI deine Bew
 ## Inhaltsverzeichnis
 
 1. [Erste Schritte](#1-erste-schritte)
+   - [Passwort vergessen](#passwort-vergessen)
 2. [Profil einrichten](#2-profil-einrichten)
 3. [Bewerbungen erfassen und verwalten](#3-bewerbungen-erfassen-und-verwalten)
 4. [Das Kanban-Board](#4-das-kanban-board)
@@ -24,7 +25,7 @@ Dieses Handbuch zeigt dir Schritt für Schritt, wie du mit JobPilot AI deine Bew
 
 Öffne JobPilot und wähle auf der Anmeldeseite den Link „Jetzt registrieren“. Es erscheint die Seite „Konto erstellen“.
 
-<img src="screenshots/registrierung.png" alt="Registrierungsseite mit den Feldern Vorname, Nachname, E-Mail-Adresse und Passwort" width="100%">
+<img src="screenshots/registrierung.png" alt="Registrierungsseite mit den Feldern Vorname, Nachname, E-Mail-Adresse, Passwort und der Checkliste der Passwortregeln" width="100%">
 
 Fülle die Felder aus:
 
@@ -39,7 +40,21 @@ Dein Passwort muss diese Regeln erfüllen:
 - mindestens ein Kleinbuchstabe
 - mindestens eine Ziffer
 
-Klicke danach auf „Registrieren“. Falls du bereits ein Konto hast, wählst du unten auf der Seite „Anmelden“.
+Unter den Passwortfeldern zeigt dir eine Checkliste live, welche Regeln schon erfüllt sind („Mindestens 10 Zeichen“, „Ein Großbuchstabe“, „Ein Kleinbuchstabe“, „Eine Ziffer“ und „Beide Eingaben stimmen überein“). Mit dem Augen-Symbol am rechten Rand eines Passwortfelds blendest du die Eingabe ein oder aus. Die Schaltfläche „Registrieren“ ist erst aktiv, wenn alle Regeln erfüllt sind. Falls du bereits ein Konto hast, wählst du unten auf der Seite „Anmelden“.
+
+### E-Mail-Adresse bestätigen
+
+Direkt nach der Registrierung schickt dir JobPilot automatisch eine E-Mail mit dem Betreff „Bitte bestätige deine E-Mail-Adresse“. Du bist trotzdem sofort angemeldet und kannst die Anwendung ohne Einschränkung nutzen. Die Bestätigung stellt sicher, dass dich JobPilot zum Beispiel beim Zurücksetzen deines Passworts erreichen kann.
+
+<img src="screenshots/email-hinweis.png" alt="Dashboard mit Hinweisbalken oben: Bitte bestätige deine E-Mail-Adresse, mit der Schaltfläche Erneut senden" width="100%">
+
+Solange die Adresse nicht bestätigt ist, zeigt dir JobPilot oben in der Anwendung einen Hinweisbalken: „Bitte bestätige deine E-Mail-Adresse – wir haben dir einen Link an <deine Adresse> geschickt.“ So bestätigst du sie:
+
+1. Öffne die E-Mail und klicke auf „E-Mail-Adresse bestätigen“.
+2. Es öffnet sich die Seite „E-Mail-Adresse bestätigt“ mit der Meldung „Danke! Deine E-Mail-Adresse ist jetzt bestätigt.“. Über „Weiter zu JobPilot“ gelangst du zurück in die Anwendung.
+3. Der Hinweisbalken verschwindet.
+
+Der Link ist 3 Tage gültig. Ist die E-Mail nicht angekommen oder der Link abgelaufen, klickst du im Hinweisbalken auf „Erneut senden“. Du siehst dann „Neue E-Mail verschickt.“. Die Schaltfläche ist danach 30 Sekunden lang gesperrt, damit nicht versehentlich mehrere E-Mails entstehen. Hast du den Link schon einmal geöffnet, ist ein zweiter Klick unschädlich.
 
 ### Profil einrichten: die Willkommensseite
 
@@ -69,7 +84,32 @@ Bis dahin führt jede Seite von JobPilot zur Willkommensseite zurück, auch nach
 
 Gib auf der Seite „Willkommen zurück“ deine E-Mail-Adresse und dein Passwort ein und klicke auf „Anmelden“. Das Kontrollkästchen „Angemeldet bleiben“ ist standardmäßig aktiviert. Nutzt du einen fremden oder gemeinsam genutzten Computer, solltest du es abwählen.
 
-<img src="screenshots/anmeldung.png" alt="Anmeldeseite mit E-Mail-Adresse, Passwort und der Option Angemeldet bleiben" width="100%">
+<img src="screenshots/anmeldung.png" alt="Anmeldeseite mit E-Mail-Adresse, Passwort, dem Link Passwort vergessen und der Option Angemeldet bleiben" width="100%">
+
+Hast du dein Passwort vergessen, klickst du neben dem Feld „Passwort“ auf „Passwort vergessen?“ (siehe nächster Abschnitt).
+
+### Passwort vergessen
+
+Du kommst nicht mehr in dein Konto? Dann legst du ein neues Passwort fest:
+
+1. Klicke auf der Anmeldeseite neben dem Feld „Passwort“ auf „Passwort vergessen?“. Es erscheint die Seite „Passwort vergessen?“.
+2. Gib deine E-Mail-Adresse ein und klicke auf „Link senden“.
+
+<img src="screenshots/passwort-vergessen.png" alt="Seite Passwort vergessen mit dem Feld E-Mail-Adresse und der Schaltfläche Link senden" width="100%">
+
+3. Du siehst die Meldung „Falls ein Konto zu dieser Adresse existiert, haben wir dir eine E-Mail mit einem Link geschickt. Der Link ist 2 Stunden gültig.“ Die Meldung ist bewusst immer gleich. So kann niemand durch Ausprobieren herausfinden, welche Adressen bei JobPilot registriert sind. Gibt es zu deiner Adresse kein Konto, bekommst du also keine E-Mail.
+4. Öffne die E-Mail „Passwort zurücksetzen“ und klicke auf „Neues Passwort festlegen“.
+5. Auf der Seite „Neues Passwort festlegen“ siehst du oben dein Konto. Gib bei „Neues Passwort“ und „Neues Passwort wiederholen“ dein neues Passwort ein. Die Checkliste zeigt dir live, welche Passwortregeln schon erfüllt sind. Klicke dann auf „Passwort speichern“.
+6. Mit der Meldung „Dein Passwort wurde geändert. Du kannst dich jetzt anmelden.“ ist alles erledigt. Über „Zur Anmeldung“ meldest du dich mit dem neuen Passwort an.
+
+Wichtig zum Link:
+
+- Er ist **2 Stunden** gültig und funktioniert **nur einmal**. Nach dem Speichern ist er verbraucht.
+- Ist der Link abgelaufen oder schon benutzt, erscheint „Der Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.“ Klicke dann auf „Neuen Link anfordern“.
+- Eine Sperre nach mehreren Fehlversuchen wird beim Zurücksetzen aufgehoben, und deine E-Mail-Adresse gilt danach als bestätigt.
+- Hast du die E-Mail nicht angefordert, ignoriere sie. Dein Passwort bleibt dann unverändert.
+
+Das Passwort änderst du, wenn du angemeldet bist, jederzeit unter „Einstellungen“ im Bereich „Sicherheit“ (siehe [Passwort ändern](#passwort-ändern)).
 
 ### Aufbau der Oberfläche
 
@@ -565,6 +605,15 @@ Dein Profil ist noch nicht eingerichtet. Solange Wunschposition und mindestens e
 
 **Kann ich die Willkommensseite überspringen?**
 Nein. Die einzige Alternative dort ist „Abmelden“. Ein einmal abgeschlossener Einstieg bleibt abgeschlossen, auch wenn du später Skills oder die Wunschposition wieder entfernst.
+
+**Ich habe keine E-Mail von JobPilot bekommen. Was kann ich tun?**
+Sieh zuerst im Spam-Ordner nach und prüfe, ob du die Adresse richtig geschrieben hast. Eine Bestätigungsmail kannst du dir über „Erneut senden“ im Hinweisbalken erneut schicken lassen; nach dem Klick ist die Schaltfläche 30 Sekunden gesperrt. Den Link zum Zurücksetzen des Passworts forderst du auf der Seite „Passwort vergessen?“ neu an. Zu einer Adresse ohne Konto verschickt JobPilot bewusst keine E-Mail, auch wenn die Seite dieselbe Meldung zeigt.
+
+**Mein Link aus der E-Mail funktioniert nicht mehr. Was nun?**
+Links zum Zurücksetzen des Passworts gelten 2 Stunden und nur einmal, Bestätigungslinks 3 Tage. Fordere einen neuen Link an: über „Passwort vergessen?“ auf der Anmeldeseite bzw. über „Erneut senden“ im Hinweisbalken. Nutze immer die neueste E-Mail und kopiere den Link vollständig, falls du ihn nicht anklickst.
+
+**Muss ich meine E-Mail-Adresse bestätigen, um JobPilot zu nutzen?**
+Nein. Du kannst dich auch ohne Bestätigung anmelden und alles verwenden. Der Hinweisbalken bleibt aber sichtbar, bis du die Adresse bestätigt hast. Konten, die schon vor dieser Funktion angelegt wurden, gelten als bestätigt.
 
 **Kann ich meine E-Mail-Adresse ändern?**
 Nein. Die E-Mail-Adresse wird für die Anmeldung verwendet und lässt sich nicht ändern.

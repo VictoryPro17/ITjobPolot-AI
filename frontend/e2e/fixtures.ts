@@ -49,11 +49,13 @@ function today() {
 export async function registerUser(
   baseURL: string,
   firstName = "Erika",
-  options: { email?: string; lastName?: string; onboarded?: boolean } = {},
+  options: { email?: string; lastName?: string; onboarded?: boolean; confirmed?: boolean } = {},
 ): Promise<TestUser> {
   const api = await playwrightRequest.newContext({ baseURL });
   const email = options.email ?? uniqueEmail();
 
+  // Nur Mails nach der Registrierung beachten (bei wiederverwendeten Adressen liegen alte im Postfach).
+  const registeredAt = new Date(Date.now() - 2_000);
   const response = await api.post("/api/auth/register", {
     data: { email, password: TEST_PASSWORD, firstName, lastName: options.lastName ?? "Test" },
   });
@@ -78,6 +80,15 @@ export async function registerUser(
       },
     });
     expect(profile.ok(), `Einstieg abschliessen fehlgeschlagen: ${await profile.text()}`).toBeTruthy();
+  }
+
+  // E-Mail-Adresse ueber den echten Link aus Mailpit bestaetigen, damit kein Hinweisbalken erscheint.
+  if (options.confirmed !== false) {
+    const link = await waitForMailLink(email, "/email-bestaetigen", { after: registeredAt });
+    const confirm = await api.post("/api/auth/confirm-email", {
+      data: { userId: link.searchParams.get("userId"), token: link.searchParams.get("token") },
+    });
+    expect(confirm.status(), `E-Mail-Bestaetigung fehlgeschlagen: ${await confirm.text()}`).toBe(204);
   }
 
   async function createApplication(data: SeedApplication): Promise<CreatedApplication> {
@@ -106,6 +117,36 @@ export async function registerUser(
   }
 
   return { email, password: TEST_PASSWORD, firstName, api, createApplication, createApplications };
+}
+
+const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:8025";
+
+interface MailpitSummary {
+  ID: string;
+  Subject: string;
+  To: { Address: string }[];
+}
+
+/**
+ * Wartet auf die neueste Mail an <email>, deren Text einen Link auf <path> enthaelt, und liefert
+ * diesen Link. Mails werden im Hintergrund versendet, daher wird kurz abgefragt.
+ */
+export async function waitForMailLink(email: string, path: string, options: { after?: Date; timeoutMs?: number } = {}): Promise<URL> {
+  const deadline = Date.now() + (options.timeoutMs ?? 15_000);
+  while (Date.now() < deadline) {
+    const response = await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}&limit=20`);
+    if (response.ok) {
+      const { messages } = (await response.json()) as { messages: (MailpitSummary & { Created: string })[] };
+      for (const message of messages ?? []) {
+        if (options.after && new Date(message.Created) < options.after) continue;
+        const detail = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${message.ID}`)).json()) as { Text: string };
+        const link = (detail.Text.match(/https?:\/\/\S+/g) ?? []).find((candidate) => new URL(candidate).pathname === path);
+        if (link) return new URL(link);
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`Keine E-Mail mit Link auf ${path} an ${email} in Mailpit gefunden. Laeuft Mailpit (docker compose up -d)?`);
 }
 
 /** Loescht das Konto samt Daten, damit keine Testkonten in der Datenbank bleiben. */

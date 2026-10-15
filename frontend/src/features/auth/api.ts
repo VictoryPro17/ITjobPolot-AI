@@ -17,6 +17,8 @@ export interface CurrentUser {
   accentColor?: string;
   /** false, solange der Pflicht-Einstieg nach der Registrierung offen ist. */
   onboardingCompleted?: boolean;
+  /** false, solange die E-Mail-Adresse noch nicht bestätigt wurde. */
+  emailConfirmed?: boolean;
   roles: string[];
   createdAt: string;
   avatarVersion?: number | null;
@@ -142,4 +144,35 @@ export function deleteAvatar() {
 
 export function getAvatarUrl(user: CurrentUser | null | undefined): string | undefined {
   return user?.avatarVersion != null ? `${BASE_URL}/auth/profile/avatar?v=${user.avatarVersion}` : undefined;
+}
+
+export function forgotPassword(email: string) {
+  return apiFetch<void>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+}
+
+export function resetPassword(request: ResetPasswordRequest) {
+  return apiFetch<void>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function confirmEmail(request: { userId: string; token: string }) {
+  return apiFetch<void>("/auth/confirm-email", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function resendConfirmation() {
+  return apiFetch<void>("/auth/resend-confirmation", { method: "POST" });
 }

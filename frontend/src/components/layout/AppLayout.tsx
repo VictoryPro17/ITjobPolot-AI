@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmailConfirmationBanner } from "@/features/auth/EmailConfirmationBanner";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getAvatarUrl } from "@/features/auth/api";
 
@@ -29,6 +30,8 @@ export function AppLayout() {
           </Link>
           <Avatar name={user?.displayName || user?.email || ""} src={getAvatarUrl(user)} className="ml-auto" />
         </header>
+
+        {user?.emailConfirmed === false ? <EmailConfirmationBanner email={user.email} /> : null}
 
         <main className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           <div className="mx-auto max-w-7xl animate-fade-in">

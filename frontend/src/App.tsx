@@ -6,6 +6,9 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
+import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
 import { OnboardingPage } from "@/pages/OnboardingPage";
 
@@ -26,6 +29,9 @@ export default function App() {
     <Routes>
       <Route path="anmelden" element={<LoginPage />} />
       <Route path="registrieren" element={<RegisterPage />} />
+      <Route path="passwort-vergessen" element={<ForgotPasswordPage />} />
+      <Route path="passwort-zuruecksetzen" element={<ResetPasswordPage />} />
+      <Route path="email-bestaetigen" element={<ConfirmEmailPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="willkommen" element={<OnboardingPage />} />
         <Route element={<AppLayout />}>

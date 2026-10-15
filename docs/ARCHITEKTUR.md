@@ -1,7 +1,7 @@
 # Architektur
 
 Dieses Dokument beschreibt den technischen Aufbau von JobPilot AI: Schichten, Datenmodell, Sicherheit,
-KI-Analyse, Dateiablage, Frontend und Teststrategie. Für Einrichtung und Betrieb siehe die
+KI-Analyse, E-Mail-Versand, Dateiablage, Frontend und Teststrategie. Für Einrichtung und Betrieb siehe die
 [README](../README.md), für die Endpunkte die [API-Referenz](API.md).
 
 ## Inhalt
@@ -11,6 +11,7 @@ KI-Analyse, Dateiablage, Frontend und Teststrategie. Für Einrichtung und Betrie
 - [Anfrage-Pipeline](#anfrage-pipeline)
 - [Datenmodell](#datenmodell)
 - [Authentifizierung und Mandantentrennung](#authentifizierung-und-mandantentrennung)
+- [E-Mail-Versand](#e-mail-versand)
 - [Match-Analyse und KI](#match-analyse-und-ki)
 - [Dateien und Uploads](#dateien-und-uploads)
 - [Fehlerbehandlung und Logging](#fehlerbehandlung-und-logging)
@@ -29,6 +30,7 @@ flowchart LR
     Infra --> DB[("PostgreSQL 17")]
     Infra -.->|optional| Ollama["Ollama<br/>lokales Sprachmodell"]
     Infra --> Files["Lokale Dateiablage<br/>uploads/"]
+    Infra -->|"SMTP (lokal Mailpit)"| Mail["Mailserver"]
 ```
 
 Frontend und API laufen in der Entwicklung unter derselben Origin: Vite leitet `/api` an die API weiter.
@@ -181,9 +183,68 @@ erfolgreichen Commit gelöscht.
   Wunschposition und mindestens ein Skill gespeichert, wird der Zeitpunkt gesetzt, und ein einmal
   gesetzter Wert bleibt bestehen. Die Antwort enthält `onboardingCompleted`. Die Migration
   `AddUserOnboarding` markiert bestehende Konten als abgeschlossen.
+* **Passwort zurücksetzen**: `POST /api/auth/forgot-password` antwortet immer mit 204, auch für unbekannte
+  Adressen. Existiert ein Konto, erzeugt der Server ein Identity-Reset-Token und reiht die E-Mail in die
+  Versandwarteschlange ein (siehe [E-Mail-Versand](#e-mail-versand)). Da der Versand im Hintergrund läuft,
+  verrät auch die Antwortzeit nicht, ob die Adresse existiert. `POST /api/auth/reset-password` löst das
+  Token ein; es gilt 2 Stunden und nur einmal, weil es an den Sicherheitsstempel des Kontos gebunden ist.
+  Ungültige, abgelaufene und verbrauchte Tokens führen zur selben 400-Meldung. Nach dem Zurücksetzen gilt
+  die Adresse als bestätigt, und eine Kontosperre wird aufgehoben.
+* **E-Mail-Bestätigung**: Die Registrierung reiht eine Bestätigungsmail ein. Die Anmeldung bleibt auch
+  ohne Bestätigung möglich (`RequireConfirmedAccount = false`); das Frontend weist über `emailConfirmed`
+  im Profil mit einem Hinweisbalken darauf hin. `POST /api/auth/confirm-email` verlangt keine Sitzung und
+  antwortet auch bei bereits bestätigter Adresse mit 204; `POST /api/auth/resend-confirmation` verschickt
+  die Mail erneut. Die Migration `MarkExistingEmailsConfirmed` setzt `EmailConfirmed` bei allen
+  bestehenden Konten auf `true`, damit sie den Hinweisbalken nicht sehen.
 * **Rate Limiting** pro IP: global 120 Anfragen pro Minute, Policy `auth` (Anmeldung, Registrierung,
-  Passwortänderung, Export, Kontolöschung) 10 pro Minute. Beide Werte sind über `RateLimiting:*`
+  Passwortänderung, Export, Kontolöschung sowie Passwort-Zurücksetzen und E-Mail-Bestätigung) 10 pro Minute. Beide Werte sind über `RateLimiting:*`
   konfigurierbar.
+
+## E-Mail-Versand
+
+JobPilot verschickt zwei Arten von E-Mails: die Bestätigung der Adresse nach der Registrierung und den
+Link zum Zurücksetzen des Passworts. Die Schnittstellen liegen in `JobPilot.Application.Abstractions`,
+die Umsetzung in `JobPilot.Infrastructure/Email`.
+
+```mermaid
+flowchart LR
+    Ctrl["AuthController"] -->|"EnqueueAsync"| Queue["EmailQueue<br/>(Channel, 500 Plätze)"]
+    Queue --> Disp["EmailDispatcher<br/>(BackgroundService)"]
+    Disp --> Sender{"IEmailSender"}
+    Sender -- "Email:Enabled = true" --> Smtp["SmtpEmailSender<br/>(MailKit)"]
+    Sender -- "Email:Enabled = false" --> Log["LoggingEmailSender"]
+    Smtp --> Server["SMTP-Server<br/>(lokal: Mailpit)"]
+```
+
+* **`IEmailSender`** versendet eine `EmailMessage` (Empfänger, Betreff, HTML- und Textfassung). Welche
+  Implementierung gilt, entscheidet `Email:Enabled` bei der Auflösung im DI-Container:
+  `SmtpEmailSender` sendet über MailKit (Host, Port, optional STARTTLS und Anmeldung aus `EmailOptions`),
+  `LoggingEmailSender` verschickt nichts. In der Entwicklung schreibt er den Textinhalt samt Link ins Log,
+  damit sich die Abläufe auch ohne Mailserver testen lassen; sonst schreibt er nur eine Warnung ohne Inhalt,
+  weil die Links Tokens enthalten. Der SMTP-Sender protokolliert keine Empfängeradressen.
+* **Warteschlange und Dispatcher**: Controller rufen nicht den Sender, sondern `IEmailQueue` auf.
+  `EmailQueue` ist ein begrenzter `Channel` im Speicher; der `EmailDispatcher` (ein `BackgroundService`)
+  arbeitet ihn nacheinander ab und löst den Sender je Nachricht in einem eigenen Scope auf. Das hat zwei
+  Gründe: Anfragen warten nicht auf den Mailserver, und `forgot-password` antwortet für bekannte und
+  unbekannte Adressen gleich schnell. Ein Versandfehler wird protokolliert und beendet den Dienst nicht;
+  die auslösende Anfrage ist dann schon beantwortet. Die Warteschlange liegt nur im Speicher, nicht
+  gesendete Mails gehen bei einem Neustart verloren; der Benutzer kann sie über „Erneut senden“ bzw.
+  „Passwort vergessen?“ neu anfordern.
+* **Vorlagen** (`AccountEmails`): Betreff, Text- und HTML-Fassung für Bestätigung und Passwort-Reset. Alle
+  eingesetzten Werte (Anrede mit dem vom Benutzer eingegebenen Vornamen, Link, Texte) werden für die
+  HTML-Fassung HTML-kodiert, sodass keine Eingabe Markup einschleusen kann.
+* **Links**: Sie entstehen aus `App:FrontendBaseUrl` und verweisen auf Seiten des Frontends
+  (`/passwort-zuruecksetzen`, `/email-bestaetigen`). Das Identity-Token wird als Base64Url kodiert, weil
+  das Original `+`, `/` und `=` enthalten kann, und von der API beim Einlösen wieder dekodiert.
+* **Token-Anbieter** (`IdentityServiceExtensions`): Reset-Links laufen über den Standard-Anbieter mit
+  2 Stunden Gültigkeit. Bestätigungslinks nutzen einen eigenen Anbieter (`EmailConfirmationTokenProvider`)
+  mit 3 Tagen, weil ein Zugriff nach der Registrierung nicht sofort erfolgen muss. Beide Token werden mit
+  dem Sicherheitsstempel des Kontos ungültig.
+* **Entwicklung**: `docker compose up -d` startet neben PostgreSQL auch Mailpit (SMTP `127.0.0.1:1025`,
+  Oberfläche `http://localhost:8025`, nur lokal erreichbar). `appsettings.Development.json` aktiviert den
+  SMTP-Versand ohne STARTTLS gegen Mailpit; alle Mails landen dort, nichts verlässt den Rechner. In
+  `appsettings.json` ist `Email:Enabled` `false`; für den Betrieb müssen Server und Zugangsdaten
+  (Letztere nur über User Secrets oder Umgebungsvariablen) konfiguriert werden.
 
 ## Match-Analyse und KI
 
@@ -267,6 +328,11 @@ frontend/src/
 * **Darstellung**: Farben als CSS-Variablen (`index.css`), Modus über die Klasse `dark`, Akzentfarbe über
   `data-accent` am `<html>`-Element. Die Auswahl wird lokal zwischengespeichert und im Konto
   gespeichert; nach der Anmeldung übernimmt `AppearanceSync` den Wert aus dem Konto.
+* **Anmeldeseiten**: Anmeldung, Registrierung, „Passwort vergessen“, „Neues Passwort festlegen“ und die
+  E-Mail-Bestätigung teilen sich `AuthLayout` (Markenfläche links, Formular rechts). `PasswordInput`
+  (mit Schalter zum Anzeigen) und `PasswordRules` (Live-Checkliste der Passwortregeln) sind gemeinsame
+  Bausteine in `features/auth`; Registrierung und Passwort-Reset verwenden dieselben Regeln. `EmailConfirmationBanner`
+  erscheint im `AppLayout`, solange `emailConfirmed === false`, und bietet „Erneut senden“ mit 30 Sekunden Wartezeit.
 * **Code-Splitting**: Seiten werden bei Bedarf geladen; React und TanStack Query liegen in eigenen
   Chunks, Recharts nur im Chunk der Statistikseite.
 
@@ -276,9 +342,9 @@ frontend/src/
 |-------|----------|--------|
 | Unit- und Service-Tests | xUnit, EF Core InMemory | Validatoren, Services (inkl. Mandantentrennung), Matching, Dateisignaturen |
 | API-Tests | `WebApplicationFactory` | Health, 401 ohne Anmeldung, Fehlerformat ohne Interna, konfigurierbares Rate Limiting |
-| Browser-Tests | Playwright (Chromium) | Hauptabläufe in Desktop hell, Desktop dunkel und Handybreite |
+| Browser-Tests | Playwright (Chromium) | Hauptabläufe in Desktop hell, Desktop dunkel und Handybreite, einschließlich E-Mail-Bestätigung und Passwort-Reset |
 | Barrierefreiheit | axe-core | Hauptseiten in allen Akzentfarben; schwere und kritische Befunde lassen den Lauf scheitern |
 
-Browser-Tests legen pro Test ein eigenes Konto an und löschen es danach. JavaScript-Fehler im Browser
+Browser-Tests legen pro Test ein eigenes Konto an und löschen es danach. Sie arbeiten mit echten E-Mails: Die Tests lesen die Links aus Mailpit (Fixture `waitForMailLink`, Adresse über `E2E_MAILPIT_URL`, Standard `http://127.0.0.1:8025`) und bestätigen damit auch die Adressen der Testkonten; ohne laufendes Mailpit bricht das Setup ab. Die Unit-Tests (`AccountEmailsTests`) decken Token-Kodierung, Links, HTML-Kodierung, den Dispatcher und die neuen Validatoren ab. JavaScript-Fehler im Browser
 lassen einen Test scheitern. `npm run docs:screenshots` erzeugt die Bilder dieser Dokumentation mit
 fiktiven Beispieldaten.

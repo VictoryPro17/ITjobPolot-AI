@@ -1,6 +1,7 @@
 ﻿using JobPilot.Application.Abstractions;
 using JobPilot.Application.Common;
 using JobPilot.Infrastructure.Ai;
+using JobPilot.Infrastructure.Email;
 using JobPilot.Infrastructure.Persistence;
 using JobPilot.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +64,15 @@ public static class DependencyInjection
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddScoped<IApplicationNoteService, ApplicationNoteService>();
+
+        // E-Mail: ohne SMTP-Konfiguration nur protokollieren; Versand immer ueber die Warteschlange.
+        services.AddScoped<IEmailSender>(provider =>
+            provider.GetRequiredService<IOptions<EmailOptions>>().Value.Enabled
+                ? ActivatorUtilities.CreateInstance<SmtpEmailSender>(provider)
+                : ActivatorUtilities.CreateInstance<LoggingEmailSender>(provider));
+        services.AddSingleton<EmailQueue>();
+        services.AddSingleton<IEmailQueue>(provider => provider.GetRequiredService<EmailQueue>());
+        services.AddHostedService<EmailDispatcher>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IAvatarService, AvatarService>();
 
