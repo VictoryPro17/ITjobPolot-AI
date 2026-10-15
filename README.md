@@ -418,4 +418,4 @@ z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://lo
 
 ## Lizenz
 
-Noch nicht festgelegt.
+Veröffentlicht unter der [MIT-Lizenz](LICENSE).
