@@ -20,14 +20,22 @@ public static class PasswordRules
             .Matches("[0-9]").WithMessage("Das Passwort muss mindestens eine Ziffer enthalten.");
 }
 
+/// <summary>Gemeinsame Regel fuer E-Mail-Adressen (Registrierung, Anmeldung, Passwort vergessen/zuruecksetzen).</summary>
+public static class EmailRules
+{
+    public const int MaximumLength = 256;
+
+    public static IRuleBuilderOptions<T, string> Email<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
+            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.")
+            .MaximumLength(MaximumLength).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
+}
+
 public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {
     public RegisterRequestValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.")
-            .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
+        RuleFor(x => x.Email).Email();
 
         RuleFor(x => x.Password).Password();
 
@@ -43,9 +51,7 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
+        RuleFor(x => x.Email).Email();
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Bitte gib dein Passwort ein.");
@@ -56,10 +62,7 @@ public class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRe
 {
     public ForgotPasswordRequestValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.")
-            .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.");
+        RuleFor(x => x.Email).Email();
     }
 }
 
@@ -67,9 +70,7 @@ public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequ
 {
     public ResetPasswordRequestValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Bitte gib eine E-Mail-Adresse ein.")
-            .EmailAddress().WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
+        RuleFor(x => x.Email).Email();
 
         RuleFor(x => x.Token)
             .NotEmpty().WithMessage("Der Link ist unvollständig. Bitte fordere einen neuen an.")

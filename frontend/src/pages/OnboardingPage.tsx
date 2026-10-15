@@ -12,26 +12,12 @@ import { Input } from "@/components/ui/Input";
 import { TagInput } from "@/components/ui/TagInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { updateProfile, uploadResume, type CurrentUser } from "@/features/auth/api";
-import { mergeSuggestion, parseSkills, type ProfileForm } from "@/features/settings/useProfileForm";
+import { updateProfile, uploadResume } from "@/features/auth/api";
+import { mergeSuggestion, parseSkills, toForm, toProfileRequest, type ProfileForm } from "@/features/settings/useProfileForm";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Step = "choose" | "details";
-
-function initialForm(user: CurrentUser | null): ProfileForm {
-  return {
-    firstName: user?.firstName ?? "",
-    lastName: user?.lastName ?? "",
-    targetJobTitle: user?.targetJobTitle ?? "",
-    location: user?.location ?? "",
-    profileSummary: user?.profileSummary ?? "",
-    experienceSummary: user?.experienceSummary ?? "",
-    educationSummary: user?.educationSummary ?? "",
-    resumeText: user?.resumeText ?? "",
-    skills: user?.skills.join(", ") ?? "",
-  };
-}
 
 /**
  * Pflicht-Einstieg nach der Registrierung: Profil ueber den Lebenslauf oder von Hand einrichten.
@@ -43,7 +29,7 @@ export function OnboardingPage() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("choose");
-  const [form, setForm] = useState<ProfileForm>(() => initialForm(user));
+  const [form, setForm] = useState<ProfileForm>(() => toForm(user));
   const [fromResume, setFromResume] = useState(false);
   const [resumeFileName, setResumeFileName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -53,20 +39,7 @@ export function OnboardingPage() {
   const skills = parseSkills(form.skills);
 
   const save = useMutation({
-    mutationFn: () =>
-      updateProfile({
-        firstName: form.firstName.trim() || null,
-        lastName: form.lastName.trim() || null,
-        targetJobTitle: form.targetJobTitle.trim() || null,
-        location: form.location.trim() || null,
-        profileSummary: form.profileSummary.trim() || null,
-        experienceSummary: form.experienceSummary.trim() || null,
-        educationSummary: form.educationSummary.trim() || null,
-        resumeText: form.resumeText.trim() || null,
-        skills,
-        themePreference: null,
-        accentColor: null,
-      }),
+    mutationFn: () => updateProfile(toProfileRequest(form)),
     onSuccess: (updated) => {
       queryClient.setQueryData(["auth", "me"], updated);
       if (updated.onboardingCompleted !== false) {
@@ -93,6 +66,16 @@ export function OnboardingPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  // Zurueck zur Auswahl: Daten eines (evtl. falschen) Lebenslaufs verwerfen, damit sie nicht
+  // unbemerkt mit "Selbst ausfuellen" gespeichert werden.
+  function goBack() {
+    setForm(toForm(user));
+    setFromResume(false);
+    setResumeFileName("");
+    setErrors({});
+    setStep("choose");
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -203,8 +186,8 @@ export function OnboardingPage() {
               </Field>
             </div>
 
-            <Field label="Skills *" error={errors.skills} hint={errors.skills ? undefined : "Mit Enter oder Komma hinzufügen – z. B. Programmiersprachen, Frameworks, Tools."}>
-              <TagInput value={skills} onChange={(tags) => update("skills", tags.join(", "))} placeholder="z. B. C#, React, Docker" />
+            <Field label="Skills *" htmlFor="onboarding-skills" error={errors.skills} hint={errors.skills ? undefined : "Mit Enter oder Komma hinzufügen – z. B. Programmiersprachen, Frameworks, Tools."}>
+              <TagInput id="onboarding-skills" value={skills} onChange={(tags) => update("skills", tags.join(", "))} placeholder="z. B. C#, React, Docker" />
             </Field>
 
             <Field label="Kurzbeschreibung (optional)" hint="Zwei, drei Sätze über dich – Grundlage für den Einstieg im Anschreiben.">
@@ -219,7 +202,7 @@ export function OnboardingPage() {
             ) : null}
 
             <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <Button type="button" variant="ghost" onClick={() => setStep("choose")}>
+              <Button type="button" variant="ghost" onClick={goBack}>
                 <ArrowLeft className="h-4 w-4" />
                 Zurück
               </Button>

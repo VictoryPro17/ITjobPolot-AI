@@ -14,6 +14,9 @@ import {
 interface AuthContextValue {
   user: CurrentUser | null;
   isLoading: boolean;
+  /** Der Server war nicht erreichbar (kein 401): Sitzung unbekannt, nicht "abgemeldet". */
+  isError: boolean;
+  retry: () => void;
   login: (request: LoginRequest) => Promise<CurrentUser>;
   register: (request: RegisterRequest) => Promise<CurrentUser>;
   logout: () => Promise<void>;
@@ -28,35 +31,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getCurrentUser,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onSuccess: (user) => {
-      queryClient.setQueryData(["auth", "me"], user);
-    },
-  });
+  // Bei jedem Sitzungswechsel den gesamten Cache leeren, damit nie Daten einer vorherigen
+  // Sitzung (z. B. eines anderen Benutzers im selben Tab) angezeigt werden.
+  function startSession(user: CurrentUser | null) {
+    queryClient.clear();
+    queryClient.setQueryData(["auth", "me"], user);
+  }
 
-  const registerMutation = useMutation({
-    mutationFn: register,
-    onSuccess: (user) => {
-      queryClient.setQueryData(["auth", "me"], user);
-    },
-  });
+  const loginMutation = useMutation({ mutationFn: login, onSuccess: startSession });
+  const registerMutation = useMutation({ mutationFn: register, onSuccess: startSession });
+  const logoutMutation = useMutation({ mutationFn: logout, onSuccess: () => startSession(null) });
 
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["auth", "me"], null);
-    },
-  });
+  async function safeLogout() {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch {
+      // Abmelden fehlgeschlagen (z. B. Netzwerk): Sitzungsstatus neu laden statt einen
+      // unbehandelten Fehler zu werfen; bleibt die Sitzung gueltig, bleibt die Ansicht.
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    }
+  }
 
   return (
     <AuthContext.Provider
       value={{
         user: userQuery.data ?? null,
         isLoading: userQuery.isLoading,
+        isError: userQuery.isError,
+        retry: () => void userQuery.refetch(),
         login: loginMutation.mutateAsync,
         register: registerMutation.mutateAsync,
-        logout: logoutMutation.mutateAsync,
+        logout: safeLogout,
       }}
     >
       {children}

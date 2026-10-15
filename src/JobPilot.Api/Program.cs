@@ -29,7 +29,14 @@ builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptio
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
 builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
-builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+// Die E-Mail-Bestaetigung ist Pflicht. Ohne Mailserver koennten neue Konten nie freigeschaltet werden,
+// daher startet die API ausserhalb der Entwicklung nur mit aktiviertem SMTP-Versand.
+builder.Services.AddOptions<EmailOptions>()
+    .Bind(builder.Configuration.GetSection(EmailOptions.SectionName))
+    .Validate(
+        options => options.Enabled || builder.Environment.IsDevelopment(),
+        "Email:Enabled muss ausserhalb der Entwicklung true sein (SMTP konfigurieren), weil die E-Mail-Bestaetigung Pflicht ist.")
+    .ValidateOnStart();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJobPilotIdentity(builder.Environment);

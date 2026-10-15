@@ -76,6 +76,30 @@ public static class IdentityServiceExtensions
             options.ExpireTimeSpan = TimeSpan.FromDays(14);
             options.SlidingExpiration = true;
 
+            // Bestaetigungsstatus im Cookie aktuell halten: Cookies ohne "bestaetigt" (unbestaetigte Konten,
+            // Bestaetigung in einem anderen Browser, Cookies von vor der Bestaetigungspflicht) werden gegen
+            // die Datenbank geprueft und bei Abweichung erneuert. Bestaetigte Cookies kosten keine Abfrage.
+            var validateSecurityStamp = options.Events.OnValidatePrincipal;
+            options.Events.OnValidatePrincipal = async context =>
+            {
+                await validateSecurityStamp(context);
+                if (context.Principal is null || EmailConfirmation.IsConfirmed(context.Principal))
+                {
+                    return;
+                }
+
+                var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                var user = await userManager.GetUserAsync(context.Principal);
+                if (user is null || !EmailConfirmation.IsStale(context.Principal, user))
+                {
+                    return;
+                }
+
+                var principalFactory = context.HttpContext.RequestServices.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>();
+                context.ReplacePrincipal(await principalFactory.CreateAsync(user));
+                context.ShouldRenew = true;
+            };
+
             // Eine API darf nicht auf eine Login-Seite umleiten, sondern muss Statuscodes liefern.
             options.Events.OnRedirectToLogin = ctx =>
             {

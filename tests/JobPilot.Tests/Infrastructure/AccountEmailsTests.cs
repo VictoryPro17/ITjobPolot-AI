@@ -60,11 +60,24 @@ public class AccountEmailsTests
     }
 
     [Fact]
+    public void Enqueue_NeverBlocksEvenWhenTheQueueIsFull()
+    {
+        // Ohne Dispatcher fuellt sich die Schlange; Einreihen muss trotzdem sofort zurueckkehren.
+        var queue = new EmailQueue(NullLogger<EmailQueue>.Instance);
+        var message = new EmailMessage("a@example.com", null, "Test", "<p>x</p>", "x");
+
+        for (var i = 0; i < EmailQueue.Capacity + 10; i++)
+        {
+            Assert.True(queue.EnqueueAsync(message).IsCompletedSuccessfully);
+        }
+    }
+
+    [Fact]
     public async Task Dispatcher_SendsQueuedMessagesAndSurvivesFailures()
     {
         var sender = new RecordingSender(failFirst: true);
         var services = new ServiceCollection().AddSingleton<IEmailSender>(sender).BuildServiceProvider();
-        var queue = new EmailQueue();
+        var queue = new EmailQueue(NullLogger<EmailQueue>.Instance);
         var dispatcher = new EmailDispatcher(queue, services.GetRequiredService<IServiceScopeFactory>(), NullLogger<EmailDispatcher>.Instance);
 
         await dispatcher.StartAsync(CancellationToken.None);

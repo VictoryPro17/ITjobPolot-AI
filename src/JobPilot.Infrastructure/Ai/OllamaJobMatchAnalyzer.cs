@@ -69,9 +69,10 @@ public class OllamaJobMatchAnalyzer(
         @"^(erste\s+)?(erfahrung(en)?|kenntnisse|know-how|experience|knowledge)\s+(mit|in|von|im|with|of)\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Trennt Aufzaehlungen; "/" bleibt bewusst erhalten (z. B. "CI/CD", "C/C++").
+    // Trennt deutsche Aufzaehlungen. "/" bleibt bewusst erhalten (z. B. "CI/CD", "C/C++"), ebenso
+    // englisches "and"/"or", das oft Teil eines Namens ist ("Research and Development").
     private static readonly Regex EnumerationSplit = new(
-        @"\s*(?:,|;|\bund\b|\boder\b|\bsowie\b|\band\b|\bor\b)\s*",
+        @"\s*(?:,|;|\bund\b|\boder\b|\bsowie\b)\s*",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex NegationWord = new(
@@ -131,8 +132,7 @@ public class OllamaJobMatchAnalyzer(
         // Zusaetzliche Anforderungen nur, wenn sie woertlich in der Stelle stehen und fachlich sind.
         // Aufzaehlungen wie "Docker, Kubernetes und Azure" in einzelne Begriffe zerlegen.
         var additional = Sanitize(ai.AdditionalRequirements, MaxRequirementLength)
-            .Select(requirement => RequirementPrefix.Replace(requirement, string.Empty))
-            .SelectMany(requirement => EnumerationSplit.Split(requirement))
+            .SelectMany(SplitEnumeration)
             .Select(requirement => RequirementPrefix.Replace(requirement.Trim(), string.Empty).Trim().TrimEnd('.', ','))
             .Where(requirement => requirement.Length > 1)
             .Where(requirement => jobDescription.Contains(requirement, StringComparison.OrdinalIgnoreCase))
@@ -184,6 +184,16 @@ public class OllamaJobMatchAnalyzer(
             Provider = ProviderName,
             Model = client.Model
         };
+    }
+
+    /// <summary>
+    /// Zerlegt "Docker, Kubernetes und Azure" in einzelne Begriffe. Wortverbindungen mit Ergaenzungsstrich
+    /// ("Front- und Backend-Entwicklung", "Unit- und Integrationstests") bleiben unzerlegt.
+    /// </summary>
+    internal static IEnumerable<string> SplitEnumeration(string requirement)
+    {
+        var parts = EnumerationSplit.Split(requirement).Select(part => part.Trim()).Where(part => part.Length > 0).ToArray();
+        return parts.Any(part => part.EndsWith('-')) ? [requirement] : parts;
     }
 
     /// <summary>Eine Anforderung ist allgemein, sobald eines ihrer Woerter ein Soft-Skill-Begriff ist.</summary>

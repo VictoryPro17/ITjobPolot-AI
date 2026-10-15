@@ -6,15 +6,29 @@ export const ONBOARDING_PATH = "/willkommen";
 export const CONFIRMATION_PENDING_PATH = "/bestaetigung-ausstehend";
 
 export function ProtectedRoute() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isError, retry } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Sitzung wird geladen...</div>;
   }
 
+  // Server nicht erreichbar (z. B. 503 beim Neustart): nicht als "abgemeldet" behandeln.
+  if (isError && !user) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-sm font-medium">Der Server ist gerade nicht erreichbar.</p>
+        <p className="text-sm text-muted-foreground">Deine Sitzung bleibt erhalten. Bitte versuche es gleich noch einmal.</p>
+        <button type="button" onClick={retry} className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+          Erneut versuchen
+        </button>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <Navigate to="/anmelden" replace state={{ from: location.pathname }} />;
+    // Ziel inklusive Suchparametern merken (z. B. /einstellungen?bereich=darstellung).
+    return <Navigate to="/anmelden" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   }
 
   // 1. E-Mail-Bestaetigung ist Pflicht; der Server sperrt ohne sie alle Daten-Endpunkte (403).

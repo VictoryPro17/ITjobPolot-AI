@@ -6,7 +6,7 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { getCurrentUser, resendConfirmation } from "@/features/auth/api";
+import { resendConfirmation, type CurrentUser } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
 
 const RESEND_COOLDOWN_MS = 30_000;
@@ -27,13 +27,14 @@ export function ConfirmationPendingPage() {
     onSuccess: () => setCoolingDown(true),
   });
 
-  // Erneut pruefen: /me erneuert das Anmelde-Cookie, sobald die Adresse bestaetigt ist.
+  // Erneut pruefen ueber die bestehende Profil-Abfrage; der Server erneuert dabei das Anmelde-Cookie,
+  // sobald die Adresse bestaetigt ist. Danach leitet ProtectedRoute automatisch weiter.
   const check = useMutation({
-    mutationFn: getCurrentUser,
-    onSuccess: (current) => {
-      queryClient.setQueryData(["auth", "me"], current);
-      setStillUnconfirmed(current?.emailConfirmed === false);
+    mutationFn: async () => {
+      await queryClient.refetchQueries({ queryKey: ["auth", "me"], exact: true });
+      return queryClient.getQueryData<CurrentUser | null>(["auth", "me"]);
     },
+    onSuccess: (current) => setStillUnconfirmed(current?.emailConfirmed === false),
   });
 
   useEffect(() => {

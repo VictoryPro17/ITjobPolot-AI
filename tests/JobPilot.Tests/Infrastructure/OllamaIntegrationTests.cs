@@ -112,6 +112,18 @@ public class OllamaIntegrationTests
         null,
         Resume);
 
+    [Theory]
+    [InlineData("Docker, Kubernetes und Azure", new[] { "Docker", "Kubernetes", "Azure" })]
+    [InlineData("Terraform oder Ansible", new[] { "Terraform", "Ansible" })]
+    [InlineData("Front- und Backend-Entwicklung", new[] { "Front- und Backend-Entwicklung" })]
+    [InlineData("Unit- und Integrationstests", new[] { "Unit- und Integrationstests" })]
+    [InlineData("Research and Development", new[] { "Research and Development" })]
+    [InlineData("CI/CD", new[] { "CI/CD" })]
+    public void SplitEnumeration_SplitsListsButKeepsCompounds(string requirement, string[] expected)
+    {
+        Assert.Equal(expected, OllamaJobMatchAnalyzer.SplitEnumeration(requirement));
+    }
+
     [Fact]
     public async Task Analyzer_SplitsEnumeratedRequirementsIntoSingleSkills()
     {

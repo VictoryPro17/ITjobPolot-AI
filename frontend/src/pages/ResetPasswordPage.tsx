@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -19,7 +19,12 @@ export function ResetPasswordPage() {
   const token = params.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const mutation = useMutation({ mutationFn: resetPassword });
+  const queryClient = useQueryClient();
+  // Der Reset bestaetigt auch die E-Mail-Adresse; ein angemeldeter Tab soll das sofort sehen.
+  const mutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  });
 
   const canSubmit = passwordMeetsRules(password) && password === confirm;
   const apiError = mutation.error instanceof ApiError ? mutation.error : null;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace JobPilot.Application.Matching;
@@ -22,7 +23,7 @@ public static class ExperienceYears
         }
 
         var values = StatedPattern.Matches(text)
-            .Select(match => int.Parse(match.Groups[1].Value))
+            .Select(match => int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture))
             .Where(value => value is >= 1 and <= 50)
             .ToList();
 
@@ -39,7 +40,7 @@ public static class ExperienceYears
 
         var ranges = RangePattern.Matches(text)
             .Select(match => (
-                Start: int.Parse(match.Groups[1].Value),
+                Start: int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture),
                 End: int.TryParse(match.Groups[2].Value, out var end) ? end : currentYear))
             .ToList();
 

@@ -8,14 +8,28 @@ using Microsoft.Extensions.Logging;
 
 namespace JobPilot.Infrastructure.Email;
 
-/// <summary>Begrenzte Warteschlange im Speicher; ein <see cref="EmailDispatcher"/> arbeitet sie ab.</summary>
-public sealed class EmailQueue : IEmailQueue
+/// <summary>
+/// Begrenzte Warteschlange im Speicher; ein <see cref="EmailDispatcher"/> arbeitet sie ab.
+/// Einreihen blockiert nie: Ist die Schlange voll (z. B. weil der Mailserver haengt), wird die Mail
+/// verworfen und protokolliert. So bleibt die Antwortzeit der Anfrage unabhaengig vom Mailserver,
+/// und "Passwort vergessen" verraet auch unter Last nicht, ob ein Konto existiert.
+/// </summary>
+public sealed class EmailQueue(ILogger<EmailQueue> logger) : IEmailQueue
 {
-    private readonly Channel<EmailMessage> _channel = Channel.CreateBounded<EmailMessage>(
-        new BoundedChannelOptions(500) { FullMode = BoundedChannelFullMode.Wait, SingleReader = true });
+    public const int Capacity = 500;
 
-    public ValueTask EnqueueAsync(EmailMessage message, CancellationToken cancellationToken = default) =>
-        _channel.Writer.WriteAsync(message, cancellationToken);
+    private readonly Channel<EmailMessage> _channel = Channel.CreateBounded<EmailMessage>(
+        new BoundedChannelOptions(Capacity) { FullMode = BoundedChannelFullMode.Wait, SingleReader = true });
+
+    public ValueTask EnqueueAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (!_channel.Writer.TryWrite(message))
+        {
+            logger.LogError("E-Mail-Warteschlange ist voll ({Capacity}); E-Mail \"{Subject}\" wurde verworfen.", Capacity, message.Subject);
+        }
+
+        return ValueTask.CompletedTask;
+    }
 
     internal IAsyncEnumerable<EmailMessage> ReadAllAsync(CancellationToken cancellationToken) =>
         _channel.Reader.ReadAllAsync(cancellationToken);

@@ -172,9 +172,15 @@ public class AuthController(
         // Wer den Link aus der E-Mail nutzt, hat Zugriff auf das Postfach: Adresse gilt als bestaetigt.
         // Eine Sperre nach Fehlversuchen wird aufgehoben, damit die Anmeldung sofort klappt.
         user.EmailConfirmed = true;
-        await userManager.UpdateAsync(user);
-        await userManager.ResetAccessFailedCountAsync(user);
-        await userManager.SetLockoutEndDateAsync(user, null);
+        user.AccessFailedCount = 0;
+        user.LockoutEnd = null;
+        var update = await userManager.UpdateAsync(user);
+        if (!update.Succeeded)
+        {
+            // Das Passwort ist bereits geaendert; nur die Nebeneffekte fehlen. Protokollieren statt scheitern.
+            logger.LogWarning("Nach dem Passwort-Reset konnte {UserId} nicht aktualisiert werden: {Errors}",
+                user.Id, string.Join(", ", update.Errors.Select(error => error.Code)));
+        }
 
         logger.LogInformation("Passwort fuer {UserId} ueber E-Mail-Link zurueckgesetzt.", user.Id);
         return NoContent();
@@ -244,15 +250,8 @@ public class AuthController(
     [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     public async Task<ActionResult<CurrentUserResponse>> Me()
     {
+        // Ein veralteter Bestaetigungsstatus im Cookie wird zentral in OnValidatePrincipal erneuert.
         var user = await GetCurrentUserAsync();
-
-        // Wurde die Adresse inzwischen (z. B. in einem anderen Browser) bestaetigt, oder stammt das
-        // Cookie aus der Zeit vor der Bestaetigungspflicht, wird es mit dem aktuellen Status erneuert.
-        if (EmailConfirmation.IsStale(User, user))
-        {
-            await signInManager.RefreshSignInAsync(user);
-        }
-
         return Ok(await BuildResponseAsync(user));
     }
 

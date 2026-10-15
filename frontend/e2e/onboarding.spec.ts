@@ -87,3 +87,47 @@ test.describe("Pflicht-Einstieg nach der Registrierung", () => {
     void page;
   });
 });
+
+test.describe("Einstieg: Fehlerbehebungen aus dem Code-Review", () => {
+  let user: TestUser;
+
+  test.beforeEach(async ({ page, baseURL }) => {
+    user = await registerUser(baseURL!, "Nora", { onboarded: false });
+    await signIn(page, user);
+  });
+
+  test.afterEach(async () => {
+    await deleteUser(user);
+  });
+
+  test("Klick auf die Beschriftung „Skills“ löscht keinen Skill", async ({ page }) => {
+    await page.goto("/willkommen");
+    await page.getByRole("button", { name: /Selbst ausfüllen/ }).click();
+    const input = page.getByPlaceholder("z. B. C#, React, Docker");
+    await input.fill("Python");
+    await input.press("Enter");
+    await expect(page.getByRole("button", { name: "Python entfernen" })).toBeVisible();
+
+    await page.getByText("Skills *", { exact: true }).click();
+    await expect(page.getByRole("button", { name: "Python entfernen" })).toBeVisible();
+    await expect(input).toBeFocused();
+  });
+
+  test("„Zurück“ verwirft die Daten eines hochgeladenen Lebenslaufs", async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.goto("/willkommen");
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "falscher-lebenslauf.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Max Falsch\nKoch\nSkills: Kochen, Docker, Kubernetes", "utf8"),
+    });
+    await expect(page.getByText("Aus deinem Lebenslauf vorausgefüllt")).toBeVisible({ timeout: 90_000 });
+
+    await page.getByRole("button", { name: "Zurück" }).click();
+    await page.getByRole("button", { name: /Selbst ausfüllen/ }).click();
+
+    await expect(page.getByText("Aus deinem Lebenslauf vorausgefüllt")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /entfernen$/ })).toHaveCount(0);
+    await expect(page.getByLabel("Vorname")).toHaveValue("Nora");
+  });
+});

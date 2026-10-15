@@ -41,7 +41,7 @@ public class RecommendationCleanerTests
     [Theory]
     [InlineData("Baue eine kleine API mit Docker, um deine Fähigkeiten zu erweitern.", "Baue eine kleine API mit Docker.")]
     [InlineData("Richte eine Pipeline ein, um dich in diesem Bereich weiterzuentwickeln.", "Richte eine Pipeline ein.")]
-    [InlineData("  setze ein Projekt mit PostgreSQL um  ", "Setze ein Projekt mit PostgreSQL um.")]
+    [InlineData("  Setze ein Projekt mit PostgreSQL um  ", "Setze ein Projekt mit PostgreSQL um.")]
     [InlineData("Lerne mehr über Azure, um dich besser für mögliche Azure-Projekte vorzubereiten.", "Lerne mehr über Azure.")]
     public void FillerTailsAreRemovedAndSentencesClosed(string input, string expected)
     {
@@ -101,6 +101,34 @@ public class RecommendationCleanerTests
         var result = RecommendationCleaner.Clean(["Azure-Infrastruktur.", "azure-infrastruktur", "Kubernetes-Grundlagen"], Skills, minItems: 0, sentences: false);
 
         Assert.Equal(["Azure-Infrastruktur", "Kubernetes-Grundlagen"], result);
+    }
+
+    [Fact]
+    public void ItemMentioningAnExhaustedSkill_IsDroppedEvenIfItAddsAnother()
+    {
+        var result = RecommendationCleaner.Clean(
+            [
+                "Containerisiere eine Anwendung mit Docker.",
+                "Schreibe ein Docker-Compose-Setup für eine API.",
+                "Baue ein Projekt mit Docker und Azure.",
+            ],
+            Skills,
+            minItems: 0);
+
+        Assert.Equal(2, result.Count);
+        Assert.DoesNotContain(result, text => text.Contains("Azure"));
+    }
+
+    [Theory]
+    [InlineData("iOS-Entwicklung", false)]
+    [InlineData("npm-Pakete veröffentlichen", false)]
+    [InlineData("gRPC-Schnittstellen entwerfen", false)]
+    [InlineData("iOS-Apps mit SwiftUI entwickeln und veröffentlichen", true)]
+    public void CaseSensitiveNamesAreNotChanged(string input, bool sentence)
+    {
+        var result = RecommendationCleaner.Clean([input], Skills, minItems: 0, sentences: sentence);
+
+        Assert.StartsWith(input[..3], Assert.Single(result));
     }
 
     [Theory]

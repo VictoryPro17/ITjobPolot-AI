@@ -361,8 +361,8 @@ export function ApplicationFormPage() {
         </Section>
 
         <Section icon={FileText} title="Details" description="Technologien, Stellenbeschreibung und eigene Notizen.">
-          <Field label="Technologien" error={errors.technologies} hint="Mit Enter oder Komma hinzufügen." className="md:col-span-2">
-            <TagInput value={form.technologies} onChange={(tags) => update("technologies", tags)} placeholder="z. B. React, C#, Docker" />
+          <Field label="Technologien" htmlFor="application-technologies" error={errors.technologies} hint="Mit Enter oder Komma hinzufügen." className="md:col-span-2">
+            <TagInput id="application-technologies" value={form.technologies} onChange={(tags) => update("technologies", tags)} placeholder="z. B. React, C#, Docker" />
           </Field>
           <Field label="Stellenbeschreibung" error={errors.jobDescription} hint="Wird für die KI-Analyse genutzt." className="md:col-span-2">
             <Textarea className="min-h-40" value={form.jobDescription} invalid={Boolean(errors.jobDescription)} onChange={(event) => update("jobDescription", event.target.value)} />

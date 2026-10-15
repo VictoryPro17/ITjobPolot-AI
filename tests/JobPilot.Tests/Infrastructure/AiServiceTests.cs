@@ -335,6 +335,31 @@ public class AiServiceTests
     }
 
     [Fact]
+    public async Task GetLatestAnalysis_StoredEntriesThatTheCleanerWouldDropAreShownUnchanged()
+    {
+        await using var context = CreateContext();
+        var userId = Guid.CreateVersion7();
+        var application = new JobApplication { UserId = userId, CompanyName = "Contoso", JobTitle = "Backend Developer" };
+        context.JobApplications.Add(application);
+        // Aeltere Analyse: alle Eintraege wuerde der Bereiniger heute verwerfen (Wortwiederholung).
+        context.AiAnalyses.Add(new AiAnalysis
+        {
+            UserId = userId,
+            JobApplicationId = application.Id,
+            JobDescription = "x",
+            MatchScore = 50,
+            Recommendations = ["Lerne Tools und Tools."],
+            SuggestedLearningTopics = ["Azure"],
+        });
+        await context.SaveChangesAsync();
+
+        var latest = await CreateService(context, userId).GetLatestAnalysisAsync(application.Id);
+
+        Assert.Equal(["Lerne Tools und Tools."], latest!.Recommendations);
+        Assert.Equal(["Azure"], latest.SuggestedLearningTopics);
+    }
+
+    [Fact]
     public async Task StoredResults_AreNotVisibleToOtherUsers()
     {
         await using var context = CreateContext();

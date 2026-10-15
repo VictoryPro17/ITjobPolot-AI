@@ -61,6 +61,12 @@ internal static partial class RecommendationCleaner
         var kept = new List<(HashSet<string> Words, string SkillKey)>();
         var perSkill = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
+        // Muster einmal je Aufruf bauen statt fuer jeden Eintrag neu.
+        var patterns = skills
+            .Where(skill => !string.IsNullOrWhiteSpace(skill))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(skill => skill, SkillPattern, StringComparer.OrdinalIgnoreCase);
+
         void Consider(string? raw)
         {
             if (result.Count >= maxItems)
@@ -74,9 +80,9 @@ internal static partial class RecommendationCleaner
                 return;
             }
 
-            var mentioned = skills.Where(skill => MentionsSkill(text, skill)).ToList();
+            var mentioned = patterns.Where(pair => pair.Value.IsMatch(text)).Select(pair => pair.Key).ToList();
             var skillKey = string.Join("|", mentioned.Select(skill => skill.ToLowerInvariant()).Order());
-            var words = ContentWords(RemoveSkills(text, mentioned));
+            var words = ContentWords(mentioned.Aggregate(text, (current, skill) => patterns[skill].Replace(current, " ")));
 
             // Duplikat nur unter Saetzen zu denselben Skills: "Lerne Docker" und "Lerne Kubernetes" bleiben beide.
             if (kept.Any(other => other.SkillKey == skillKey && Similarity(words, other.Words) >= DuplicateThreshold))
@@ -84,7 +90,8 @@ internal static partial class RecommendationCleaner
                 return;
             }
 
-            if (mentioned.Count > 0 && mentioned.All(skill => perSkill.GetValueOrDefault(skill) >= MaxPerSkill))
+            // Streng: Ist auch nur einer der erwaehnten Skills ausgeschoepft, faellt der Eintrag weg.
+            if (mentioned.Any(skill => perSkill.GetValueOrDefault(skill) >= MaxPerSkill))
             {
                 return;
             }
@@ -130,7 +137,7 @@ internal static partial class RecommendationCleaner
         if (!sentence)
         {
             text = text.TrimEnd('.', ' ');
-            return text.Length < 2 ? null : char.ToUpperInvariant(text[0]) + text[1..];
+            return text.Length < 2 ? null : text;
         }
 
         if (text.Length < MinLength)
@@ -143,11 +150,9 @@ internal static partial class RecommendationCleaner
             text += ".";
         }
 
-        return char.ToUpperInvariant(text[0]) + text[1..];
+        // Gross-/Kleinschreibung bleibt unveraendert: Namen wie "iOS", "npm" oder "gRPC" sind case-sensitiv.
+        return text;
     }
-
-    private static string RemoveSkills(string text, IEnumerable<string> skills) =>
-        skills.Aggregate(text, (current, skill) => SkillPattern(skill).Replace(current, " "));
 
     private static HashSet<string> ContentWords(string text) =>
         Word().Matches(text)

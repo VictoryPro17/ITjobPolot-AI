@@ -50,7 +50,7 @@ export function ConfirmEmailPage() {
         <div className="space-y-4">
           <Alert tone="error">{message}</Alert>
           <p className="text-sm text-muted-foreground">
-            Du kannst in JobPilot einen neuen Bestätigungslink anfordern. Melde dich dafür an und klicke im Hinweis oben auf „Erneut senden“.
+            Einen neuen Bestätigungslink bekommst du, wenn du dich anmeldest und auf der Seite „Bitte bestätige deine E-Mail-Adresse“ auf „Erneut senden“ klickst.
           </p>
           <Link to="/" className={buttonLinkClass}>Weiter zu JobPilot</Link>
         </div>

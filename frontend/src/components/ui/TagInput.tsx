@@ -7,9 +7,11 @@ interface TagInputProps {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
+  /** Id des Texteingabefelds, damit ein Label darauf verweisen kann. */
+  id?: string;
 }
 
-export function TagInput({ value, onChange, placeholder }: TagInputProps) {
+export function TagInput({ value, onChange, placeholder, id }: TagInputProps) {
   const [draft, setDraft] = useState("");
 
   function addTags(rawValues: string[]) {
@@ -64,6 +66,7 @@ export function TagInput({ value, onChange, placeholder }: TagInputProps) {
         </Badge>
       ))}
       <input
+        id={id}
         className="min-w-24 flex-1 bg-transparent px-1.5 text-sm outline-none placeholder:text-muted-foreground/70"
         value={draft}
         placeholder={placeholder}

@@ -24,7 +24,8 @@ public class SmtpEmailSender(IOptions<EmailOptions> options, ILogger<SmtpEmailSe
         mime.Subject = message.Subject;
         mime.Body = new BodyBuilder { HtmlBody = message.HtmlBody, TextBody = message.TextBody }.ToMessageBody();
 
-        using var client = new SmtpClient();
+        // Haengende Mailserver nicht minutenlang abwarten (MailKit-Standard: 2 Minuten).
+        using var client = new SmtpClient { Timeout = 30_000 };
         await client.ConnectAsync(
             _options.Host,
             _options.Port,

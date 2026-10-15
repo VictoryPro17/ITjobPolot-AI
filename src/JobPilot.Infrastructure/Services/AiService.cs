@@ -173,9 +173,10 @@ public class AiService(
                 analysis.RequiredSkills,
                 analysis.MatchedSkills,
                 analysis.MissingSkills,
-                // Auch aeltere, vor dem Bereiniger gespeicherte Analysen sauber ausliefern.
-                RecommendationCleaner.Clean(analysis.Recommendations, analysis.RequiredSkills, minItems: 0),
-                RecommendationCleaner.Clean(analysis.SuggestedLearningTopics, analysis.RequiredSkills, minItems: 0, sentences: false),
+                // Auch aeltere, vor dem Bereiniger gespeicherte Analysen sauber ausliefern. Bliebe dabei nichts
+                // uebrig, werden die gespeicherten Eintraege unveraendert gezeigt statt einer leeren Liste.
+                CleanStored(analysis.Recommendations, analysis.RequiredSkills, sentences: true),
+                CleanStored(analysis.SuggestedLearningTopics, analysis.RequiredSkills, sentences: false),
                 analysis.Provider,
                 analysis.Model,
                 analysis.CreatedAt,
@@ -205,6 +206,12 @@ public class AiService(
                 c.Model,
                 c.CreatedAt))
             .ToListAsync(cancellationToken);
+    }
+
+    private static IReadOnlyList<string> CleanStored(List<string> stored, IReadOnlyCollection<string> skills, bool sentences)
+    {
+        var cleaned = RecommendationCleaner.Clean(stored, skills, minItems: 0, sentences: sentences);
+        return cleaned.Count > 0 ? cleaned : stored;
     }
 
     private async Task EnsureApplicationBelongsToUserAsync(Guid applicationId, Guid userId, CancellationToken cancellationToken)

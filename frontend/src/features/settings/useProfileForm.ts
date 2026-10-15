@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/features/auth/AuthProvider";
-import { extractResumeProfile, updateProfile, uploadResume, type CurrentUser, type ResumeProfileSuggestion } from "@/features/auth/api";
+import { extractResumeProfile, updateProfile, uploadResume, type CurrentUser, type ResumeProfileSuggestion, type UpdateProfileRequest } from "@/features/auth/api";
 import { ApiError } from "@/lib/api";
 
 export type ProfileForm = {
@@ -41,6 +41,26 @@ const emptyProfile: ProfileForm = {
   skills: "",
 };
 
+/**
+ * Formularwerte als Anfrage fuer PUT /auth/profile. Darstellung (Theme, Akzent) bleibt unveraendert
+ * (null); sie wird separat gespeichert.
+ */
+export function toProfileRequest(profile: ProfileForm): UpdateProfileRequest {
+  return {
+    firstName: profile.firstName.trim() || null,
+    lastName: profile.lastName.trim() || null,
+    targetJobTitle: profile.targetJobTitle.trim() || null,
+    location: profile.location.trim() || null,
+    profileSummary: profile.profileSummary.trim() || null,
+    experienceSummary: profile.experienceSummary.trim() || null,
+    educationSummary: profile.educationSummary.trim() || null,
+    resumeText: profile.resumeText.trim() || null,
+    skills: parseSkills(profile.skills),
+    themePreference: null,
+    accentColor: null,
+  };
+}
+
 export function parseSkills(value: string): string[] {
   return value
     .split(",")
@@ -49,7 +69,9 @@ export function parseSkills(value: string): string[] {
     .filter((skill, index, array) => array.indexOf(skill) === index);
 }
 
-function toForm(user: CurrentUser): ProfileForm {
+/** Gespeichertes Profil als Formularwerte (auch im Pflicht-Einstieg genutzt). */
+export function toForm(user: CurrentUser | null | undefined): ProfileForm {
+  if (!user) return { ...emptyProfile };
   return {
     firstName: user.firstName ?? "",
     lastName: user.lastName ?? "",
@@ -134,21 +156,7 @@ export function useProfileForm() {
   }, [hasUnsavedChanges]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      updateProfile({
-        firstName: profile.firstName.trim() || null,
-        lastName: profile.lastName.trim() || null,
-        targetJobTitle: profile.targetJobTitle.trim() || null,
-        location: profile.location.trim() || null,
-        profileSummary: profile.profileSummary.trim() || null,
-        experienceSummary: profile.experienceSummary.trim() || null,
-        educationSummary: profile.educationSummary.trim() || null,
-        resumeText: profile.resumeText.trim() || null,
-        skills: parseSkills(profile.skills),
-        // null laesst das gespeicherte Theme unveraendert; es wird separat gespeichert.
-        themePreference: null,
-        accentColor: null,
-      }),
+    mutationFn: () => updateProfile(toProfileRequest(profile)),
     onSuccess: (updated) => {
       queryClient.setQueryData(["auth", "me"], updated);
       setMessage("Profil wurde gespeichert.");
