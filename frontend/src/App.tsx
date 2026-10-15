@@ -10,6 +10,7 @@ import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { ConfirmEmailPage } from "@/pages/ConfirmEmailPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
+import { ConfirmationPendingPage } from "@/pages/ConfirmationPendingPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
 
 // Seiten ausser Anmeldung und Dashboard werden erst beim ersten Aufruf geladen,
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="passwort-zuruecksetzen" element={<ResetPasswordPage />} />
       <Route path="email-bestaetigen" element={<ConfirmEmailPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="bestaetigung-ausstehend" element={<ConfirmationPendingPage />} />
         <Route path="willkommen" element={<OnboardingPage />} />
         <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />

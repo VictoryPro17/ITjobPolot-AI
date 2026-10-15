@@ -44,21 +44,27 @@ Unter den Passwortfeldern zeigt dir eine Checkliste live, welche Regeln schon er
 
 ### E-Mail-Adresse bestätigen
 
-Direkt nach der Registrierung schickt dir JobPilot automatisch eine E-Mail mit dem Betreff „Bitte bestätige deine E-Mail-Adresse“. Du bist trotzdem sofort angemeldet und kannst die Anwendung ohne Einschränkung nutzen. Die Bestätigung stellt sicher, dass dich JobPilot zum Beispiel beim Zurücksetzen deines Passworts erreichen kann.
+Direkt nach der Registrierung schickt dir JobPilot automatisch eine E-Mail mit dem Betreff „Bitte bestätige deine E-Mail-Adresse“. Die Bestätigung ist **Pflicht**: Du bist zwar angemeldet, siehst aber nur die Seite „Bitte bestätige deine E-Mail-Adresse“, bis du die Adresse bestätigt hast. Erst danach kannst du dein Profil einrichten und JobPilot nutzen.
 
-<img src="screenshots/email-hinweis.png" alt="Dashboard mit Hinweisbalken oben: Bitte bestätige deine E-Mail-Adresse, mit der Schaltfläche Erneut senden" width="100%">
+<img src="screenshots/bestaetigung-ausstehend.png" alt="Seite Bitte bestätige deine E-Mail-Adresse mit dem Hinweis auf die verschickte E-Mail und den Schaltflächen Ich habe bestätigt und Erneut senden" width="100%">
 
-Solange die Adresse nicht bestätigt ist, zeigt dir JobPilot oben in der Anwendung einen Hinweisbalken: „Bitte bestätige deine E-Mail-Adresse – wir haben dir einen Link an <deine Adresse> geschickt.“ So bestätigst du sie:
+Auf dieser Seite steht, an welche Adresse die E-Mail gegangen ist und dass der Link 3 Tage gültig ist. So bestätigst du die Adresse:
 
-1. Öffne die E-Mail und klicke auf „E-Mail-Adresse bestätigen“.
+1. Öffne die E-Mail und klicke auf „E-Mail-Adresse bestätigen“. Sieh bei Bedarf auch im Spam-Ordner nach.
 2. Es öffnet sich die Seite „E-Mail-Adresse bestätigt“ mit der Meldung „Danke! Deine E-Mail-Adresse ist jetzt bestätigt.“. Über „Weiter zu JobPilot“ gelangst du zurück in die Anwendung.
-3. Der Hinweisbalken verschwindet.
+3. Hast du den Link in einem anderen Browser oder auf einem anderen Gerät geöffnet, klickst du auf der Wartseite auf „Ich habe bestätigt“. JobPilot prüft dann den Stand und führt dich weiter. Ist die Adresse noch nicht bestätigt, erscheint „Deine E-Mail-Adresse ist noch nicht bestätigt. Öffne zuerst den Link aus der E-Mail.“
 
-Der Link ist 3 Tage gültig. Ist die E-Mail nicht angekommen oder der Link abgelaufen, klickst du im Hinweisbalken auf „Erneut senden“. Du siehst dann „Neue E-Mail verschickt.“. Die Schaltfläche ist danach 30 Sekunden lang gesperrt, damit nicht versehentlich mehrere E-Mails entstehen. Hast du den Link schon einmal geöffnet, ist ein zweiter Klick unschädlich.
+Die Seite hat drei Schaltflächen:
+
+- **Ich habe bestätigt** prüft, ob die Bestätigung inzwischen erfolgt ist.
+- **Erneut senden** verschickt eine neue E-Mail. Du siehst dann „Neue E-Mail verschickt.“. Die Schaltfläche ist danach 30 Sekunden lang gesperrt, damit nicht versehentlich mehrere E-Mails entstehen.
+- **Abmelden** beendet die Sitzung, zum Beispiel um später mit einem anderen Konto weiterzumachen.
+
+Hast du den Link schon einmal geöffnet, ist ein zweiter Klick unschädlich.
 
 ### Profil einrichten: die Willkommensseite
 
-Nach der Registrierung landest du nicht sofort im Dashboard, sondern auf der Willkommensseite („Willkommen, <Vorname>! Richte zuerst dein Profil ein.“). JobPilot vergleicht Stellen mit deinem Profil. Ohne Wunschposition und Skills sind Match-Analyse und Anschreiben kaum aussagekräftig, deshalb ist dieser Schritt verpflichtend und lässt sich nicht überspringen.
+Nach der E-Mail-Bestätigung landest du nicht sofort im Dashboard, sondern auf der Willkommensseite („Willkommen, <Vorname>! Richte zuerst dein Profil ein.“). JobPilot vergleicht Stellen mit deinem Profil. Ohne Wunschposition und Skills sind Match-Analyse und Anschreiben kaum aussagekräftig, deshalb ist dieser Schritt verpflichtend und lässt sich nicht überspringen.
 
 <img src="screenshots/willkommen.png" alt="Willkommensseite mit den Optionen Lebenslauf hochladen (empfohlen) und Selbst ausfüllen" width="100%">
 
@@ -607,13 +613,13 @@ Dein Profil ist noch nicht eingerichtet. Solange Wunschposition und mindestens e
 Nein. Die einzige Alternative dort ist „Abmelden“. Ein einmal abgeschlossener Einstieg bleibt abgeschlossen, auch wenn du später Skills oder die Wunschposition wieder entfernst.
 
 **Ich habe keine E-Mail von JobPilot bekommen. Was kann ich tun?**
-Sieh zuerst im Spam-Ordner nach und prüfe, ob du die Adresse richtig geschrieben hast. Eine Bestätigungsmail kannst du dir über „Erneut senden“ im Hinweisbalken erneut schicken lassen; nach dem Klick ist die Schaltfläche 30 Sekunden gesperrt. Den Link zum Zurücksetzen des Passworts forderst du auf der Seite „Passwort vergessen?“ neu an. Zu einer Adresse ohne Konto verschickt JobPilot bewusst keine E-Mail, auch wenn die Seite dieselbe Meldung zeigt.
+Sieh zuerst im Spam-Ordner nach und prüfe, ob du die Adresse richtig geschrieben hast. Eine Bestätigungsmail kannst du dir auf der Seite „Bitte bestätige deine E-Mail-Adresse“ über „Erneut senden“ noch einmal schicken lassen; nach dem Klick ist die Schaltfläche 30 Sekunden gesperrt. Hast du die Adresse auf einem anderen Gerät bestätigt, klicke hier auf „Ich habe bestätigt“. Den Link zum Zurücksetzen des Passworts forderst du auf der Seite „Passwort vergessen?“ neu an. Zu einer Adresse ohne Konto verschickt JobPilot bewusst keine E-Mail, auch wenn die Seite dieselbe Meldung zeigt.
 
 **Mein Link aus der E-Mail funktioniert nicht mehr. Was nun?**
-Links zum Zurücksetzen des Passworts gelten 2 Stunden und nur einmal, Bestätigungslinks 3 Tage. Fordere einen neuen Link an: über „Passwort vergessen?“ auf der Anmeldeseite bzw. über „Erneut senden“ im Hinweisbalken. Nutze immer die neueste E-Mail und kopiere den Link vollständig, falls du ihn nicht anklickst.
+Links zum Zurücksetzen des Passworts gelten 2 Stunden und nur einmal, Bestätigungslinks 3 Tage. Fordere einen neuen Link an: über „Passwort vergessen?“ auf der Anmeldeseite bzw. über „Erneut senden“ auf der Seite „Bitte bestätige deine E-Mail-Adresse“. Nutze immer die neueste E-Mail und kopiere den Link vollständig, falls du ihn nicht anklickst.
 
 **Muss ich meine E-Mail-Adresse bestätigen, um JobPilot zu nutzen?**
-Nein. Du kannst dich auch ohne Bestätigung anmelden und alles verwenden. Der Hinweisbalken bleibt aber sichtbar, bis du die Adresse bestätigt hast. Konten, die schon vor dieser Funktion angelegt wurden, gelten als bestätigt.
+Ja, die Bestätigung ist Pflicht. Du kannst dich zwar auch ohne Bestätigung anmelden, siehst dann aber nur die Seite „Bitte bestätige deine E-Mail-Adresse“, und der Server sperrt alle Funktionen, bis die Adresse bestätigt ist. Nur das Abmelden, das erneute Senden der E-Mail, der Datenexport und das Löschen des Kontos sind vorher möglich. Konten, die schon vor dieser Regel angelegt wurden, gelten als bestätigt.
 
 **Kann ich meine E-Mail-Adresse ändern?**
 Nein. Die E-Mail-Adresse wird für die Anmeldung verwendet und lässt sich nicht ändern.

@@ -33,7 +33,7 @@ builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailO
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJobPilotIdentity(builder.Environment);
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(JobPilot.Api.Authorization.EmailConfirmation.Configure);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();

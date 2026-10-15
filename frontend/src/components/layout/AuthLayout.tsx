@@ -10,7 +10,12 @@ interface AuthLayoutProps {
   footer?: ReactNode;
 }
 
-const highlights = ["Lebenslauf automatisch auslesen", "Match-Score mit Erklärung", "Kanban-Board für alle Bewerbungen"];
+const highlights = [
+  "Dein Lebenslauf wird automatisch ausgelesen und füllt dein Profil vor – du prüfst nur noch die Angaben.",
+  "Für jede Stelle erhältst du einen Match-Score mit verständlicher Begründung und konkreten Empfehlungen.",
+  "Status, Termine und Erinnerungen aller Bewerbungen hast du jederzeit auf einen Blick.",
+  "Deine Daten bleiben bei dir: Die KI-Analyse kann vollständig lokal auf deinem Rechner laufen.",
+];
 
 export function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
   return (
@@ -28,14 +33,18 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
         </div>
 
         <div className="relative">
-          <p className="text-4xl font-semibold tracking-tight">Bewerbungen. Klar organisiert.</p>
-          <p className="mt-4 max-w-md text-white/85">
-            Lade deinen Lebenslauf hoch, analysiere Stellen und bewirb dich gezielt mit einem nachvollziehbaren Match-Score.
+          <p className="max-w-lg text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
+            Behalte jede Bewerbung im Blick – vom ersten Entwurf bis zur Zusage.
           </p>
-          <ul className="mt-8 space-y-3">
+          <p className="mt-5 max-w-lg leading-relaxed text-white/85">
+            JobPilot bündelt Stellenanzeigen, Unterlagen, Gesprächstermine und Notizen an einem Ort. Ein nachvollziehbarer
+            Abgleich zwischen deinem Profil und jeder Stelle zeigt dir, wo du bereits überzeugst und welche Kenntnisse du
+            gezielt ausbauen solltest.
+          </p>
+          <ul className="mt-8 max-w-lg space-y-4">
             {highlights.map((item) => (
-              <li key={item} className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-white/90" aria-hidden="true" />
+              <li key={item} className="flex items-start gap-3 leading-relaxed text-white/95">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-white/90" aria-hidden="true" />
                 {item}
               </li>
             ))}

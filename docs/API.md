@@ -32,9 +32,22 @@ Die API verwendet ASP.NET Core Identity mit Cookie-Sitzungen (kein JWT).
 - Das Cookie ist `HttpOnly` und `SameSite=Lax`. Außerhalb der Entwicklungsumgebung ist es zusätzlich nur über HTTPS gültig (`Secure`).
 - Die Sitzung läuft nach 14 Tagen ab und verlängert sich bei Nutzung (Sliding Expiration).
 - Alle Endpunkte außer Registrierung, Anmeldung, den Endpunkten für Passwort-Zurücksetzen und E-Mail-Bestätigung (`forgot-password`, `reset-password`, `confirm-email`) und Health erfordern eine gültige Sitzung. Fehlt sie, antwortet die API mit `401 Unauthorized` (keine Weiterleitung auf eine Anmeldeseite).
+- **Die E-Mail-Bestätigung ist Pflicht.** Eine Sitzung genügt nur für die Endpunkte der nächsten Zeile. Alle anderen geschützten Endpunkte (Profil ändern, Lebenslauf, Profilbild, Passwort ändern, Bewerbungen, Notizen, Dokumente, Erinnerungen, KI) verlangen zusätzlich eine bestätigte Adresse und antworten sonst mit `403 Forbidden` (Beispiel unten).
+- Auch ohne Bestätigung nutzbar sind (mit Sitzung) `GET /api/auth/me`, `POST /api/auth/logout`, `POST /api/auth/resend-confirmation`, `GET /api/auth/export` und `DELETE /api/auth/account`. Öffentlich bleiben `register`, `login`, `forgot-password`, `reset-password`, `confirm-email` und Health. Die Anmeldung ist ohne Bestätigung möglich, damit sich eine neue Mail anfordern lässt.
 - Nach 5 fehlgeschlagenen Anmeldeversuchen wird das Konto für 15 Minuten gesperrt.
+- Den Bestätigungsstatus trägt das Cookie als Claim `jobpilot:email_confirmed`. `GET /api/auth/me` stellt das Cookie neu aus, wenn der Claim nicht zum Stand in der Datenbank passt (etwa nach einer Bestätigung in einem anderen Browser oder bei einem Cookie aus der Zeit vor der Pflicht). `POST /api/auth/confirm-email` erneuert das Cookie, wenn derselbe Benutzer in diesem Browser angemeldet ist.
 
 Clients müssen das Cookie bei jeder Anfrage mitsenden (Browser: automatisch; `curl`: `-c` und `-b`).
+
+**Antwort ohne bestätigte E-Mail-Adresse** (`403 Forbidden`, `application/problem+json`):
+
+```json
+{
+  "title": "E-Mail-Adresse noch nicht bestätigt.",
+  "status": 403,
+  "detail": "Bitte bestätige zuerst deine E-Mail-Adresse."
+}
+```
 
 ### Mandantentrennung
 
@@ -85,7 +98,7 @@ Weitere Hinweise:
 | 204 | No Content | Erfolgreich, ohne Antwortinhalt |
 | 400 | Bad Request | Validierungsfehler oder ungültige Anfrage |
 | 401 | Unauthorized | Keine gültige Sitzung |
-| 403 | Forbidden | Zugriff auf die Ressource nicht erlaubt (wird von der Fehlerbehandlung unterstützt) |
+| 403 | Forbidden | E-Mail-Adresse noch nicht bestätigt (siehe [Authentifizierung](#authentifizierung)); sonst Zugriff auf die Ressource nicht erlaubt (wird von der Fehlerbehandlung unterstützt) |
 | 404 | Not Found | Ressource nicht vorhanden oder gehört einem anderen Benutzer |
 | 409 | Conflict | Vorgang widerspricht dem Datenstand (z. B. E-Mail-Adresse bereits registriert, doppeltes Dokument) |
 | 429 | Too Many Requests | Rate-Limit überschritten |
@@ -112,14 +125,14 @@ Basis: `/api/auth`
 
 | Methode | Pfad | Beschreibung | Auth |
 |---------|------|--------------|------|
-| POST | `/api/auth/register` | Legt ein Konto an, meldet den Benutzer direkt an (setzt das Cookie) und reiht eine Bestätigungsmail ein. Rate-Limit `auth`. | Öffentlich |
+| POST | `/api/auth/register` | Legt ein Konto an, meldet den Benutzer direkt an (setzt das Cookie) und reiht eine Bestätigungsmail ein. Bis zur Bestätigung sind die meisten Endpunkte gesperrt (`403`). Rate-Limit `auth`. | Öffentlich |
 | POST | `/api/auth/login` | Meldet an und setzt das Cookie. Rate-Limit `auth`. | Öffentlich |
 | POST | `/api/auth/forgot-password` | Verschickt einen Link zum Zurücksetzen des Passworts (`204`, immer). Rate-Limit `auth`. | Öffentlich |
 | POST | `/api/auth/reset-password` | Setzt mit dem Token aus der E-Mail ein neues Passwort (`204`). Rate-Limit `auth`. | Öffentlich |
 | POST | `/api/auth/confirm-email` | Bestätigt die E-Mail-Adresse mit dem Token aus der Bestätigungsmail (`204`). Rate-Limit `auth`. | Öffentlich |
-| POST | `/api/auth/resend-confirmation` | Verschickt die Bestätigungsmail erneut (`204`). Rate-Limit `auth`. | Sitzung |
-| POST | `/api/auth/logout` | Beendet die Sitzung (`204`). | Sitzung |
-| GET | `/api/auth/me` | Liefert das Profil des angemeldeten Benutzers. | Sitzung |
+| POST | `/api/auth/resend-confirmation` | Verschickt die Bestätigungsmail erneut (`204`). Rate-Limit `auth`. Auch ohne bestätigte Adresse nutzbar. | Sitzung |
+| POST | `/api/auth/logout` | Beendet die Sitzung (`204`). Auch ohne bestätigte Adresse nutzbar. | Sitzung |
+| GET | `/api/auth/me` | Liefert das Profil des angemeldeten Benutzers. Auch ohne bestätigte Adresse nutzbar; erneuert bei veraltetem Bestätigungs-Claim das Cookie. | Sitzung |
 | PUT | `/api/auth/profile` | Aktualisiert die Profildaten. | Sitzung |
 | POST | `/api/auth/profile/resume` | Lädt einen Lebenslauf hoch, speichert ihn als Dokument und liefert einen Profilvorschlag. | Sitzung |
 | POST | `/api/auth/profile/resume/extract` | Erzeugt einen Profilvorschlag aus eingefügtem Lebenslauf-Text, ohne zu speichern. | Sitzung |
@@ -143,7 +156,7 @@ Antwort: `201 Created` mit dem Benutzerprofil (siehe unten), Header `Location: /
 
 Ist die E-Mail-Adresse bereits registriert, antwortet die API mit `409 Conflict`.
 
-Nach dem Anlegen reiht die API eine Bestätigungsmail in die Versandwarteschlange ein (siehe [E-Mail-Links und Tokens](#e-mail-links-und-tokens)). Die Anmeldung ist auch ohne Bestätigung möglich; im Profil ist `emailConfirmed` dann `false`.
+Nach dem Anlegen reiht die API eine Bestätigungsmail in die Versandwarteschlange ein (siehe [E-Mail-Links und Tokens](#e-mail-links-und-tokens)). Die Anmeldung ist auch ohne Bestätigung möglich; im Profil ist `emailConfirmed` dann `false`, und die meisten Endpunkte antworten mit `403`, bis die Adresse bestätigt ist.
 
 ### POST /api/auth/login
 
@@ -189,7 +202,7 @@ Antworten:
 - `204 No Content`: Die Adresse ist bestätigt. Das gilt auch, wenn sie bereits bestätigt war, sodass ein zweiter Klick auf den Link nicht fehlschlägt.
 - `400 Bad Request` mit Fehlerschlüssel `token`: Token ungültig oder abgelaufen (Gültigkeit 3 Tage) oder Konto unbekannt.
 
-Der Endpunkt verlangt keine Sitzung, damit der Link auch in einem anderen Browser funktioniert.
+Der Endpunkt verlangt keine Sitzung, damit der Link auch in einem anderen Browser funktioniert. Ist derselbe Benutzer in diesem Browser angemeldet, stellt die API das Cookie mit dem Status „bestätigt“ neu aus.
 
 ### POST /api/auth/resend-confirmation
 

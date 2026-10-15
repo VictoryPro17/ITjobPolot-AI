@@ -190,12 +190,24 @@ erfolgreichen Commit gelöscht.
   Token ein; es gilt 2 Stunden und nur einmal, weil es an den Sicherheitsstempel des Kontos gebunden ist.
   Ungültige, abgelaufene und verbrauchte Tokens führen zur selben 400-Meldung. Nach dem Zurücksetzen gilt
   die Adresse als bestätigt, und eine Kontosperre wird aufgehoben.
-* **E-Mail-Bestätigung**: Die Registrierung reiht eine Bestätigungsmail ein. Die Anmeldung bleibt auch
-  ohne Bestätigung möglich (`RequireConfirmedAccount = false`); das Frontend weist über `emailConfirmed`
-  im Profil mit einem Hinweisbalken darauf hin. `POST /api/auth/confirm-email` verlangt keine Sitzung und
-  antwortet auch bei bereits bestätigter Adresse mit 204; `POST /api/auth/resend-confirmation` verschickt
-  die Mail erneut. Die Migration `MarkExistingEmailsConfirmed` setzt `EmailConfirmed` bei allen
-  bestehenden Konten auf `true`, damit sie den Hinweisbalken nicht sehen.
+* **E-Mail-Bestätigung (Pflicht)**: Die Registrierung reiht eine Bestätigungsmail ein. Die Anmeldung bleibt
+  ohne Bestätigung möglich (`RequireConfirmedAccount = false`), damit sich eine neue Mail anfordern lässt;
+  danach ist aber fast nichts mehr erreichbar. `JobPilotClaimsPrincipalFactory` schreibt den Status als
+  Claim `jobpilot:email_confirmed` in das Cookie. Die Standard-Autorisierungs-Policy
+  (`Authorization/EmailConfirmation.cs`) verlangt diesen Claim mit dem Wert `true`; sie gilt für jeden
+  `[Authorize]`-Endpunkt ohne weitere Angabe. Nur die Policy `AllowUnconfirmedEmail` (angemeldet genügt)
+  ist ausgenommen und steht an `GET /api/auth/me`, `POST /api/auth/logout`,
+  `POST /api/auth/resend-confirmation`, `GET /api/auth/export` und `DELETE /api/auth/account`. Öffentliche
+  Endpunkte (Registrierung, Anmeldung, Passwort-Reset, `confirm-email`, Health) bleiben unverändert. Wird
+  der Zugriff verweigert, antwortet die Cookie-Konfiguration (`OnRedirectToAccessDenied`) mit `403` und
+  einem ProblemDetails-Körper („E-Mail-Adresse noch nicht bestätigt.“), statt umzuleiten. Damit der Claim
+  nicht veraltet, stellt `GET /api/auth/me` das Cookie neu aus, wenn er vom Datenbankstand abweicht (etwa
+  nach einer Bestätigung in einem anderen Browser oder bei Cookies aus der Zeit vor der Pflicht);
+  `POST /api/auth/confirm-email` erneuert das Cookie, wenn derselbe Benutzer angemeldet ist. Der Endpunkt
+  verlangt keine Sitzung und antwortet auch bei bereits bestätigter Adresse mit 204;
+  `POST /api/auth/resend-confirmation` verschickt die Mail erneut. Die Migration
+  `MarkExistingEmailsConfirmed` setzt `EmailConfirmed` bei allen bestehenden Konten auf `true`, damit
+  sie nicht ausgesperrt werden.
 * **Rate Limiting** pro IP: global 120 Anfragen pro Minute, Policy `auth` (Anmeldung, Registrierung,
   Passwortänderung, Export, Kontolöschung sowie Passwort-Zurücksetzen und E-Mail-Bestätigung) 10 pro Minute. Beide Werte sind über `RateLimiting:*`
   konfigurierbar.
@@ -321,8 +333,14 @@ frontend/src/
   `ProblemDetails` in `ApiError` inklusive Feldfehlern.
 * **Kanban-Board**: Jede Spalte lädt seitenweise (15 Karten) per `useInfiniteQuery`. Statuswechsel
   werden optimistisch angezeigt und bei Fehlern zurückgesetzt.
-* **Pflicht-Einstieg**: `ProtectedRoute` leitet Benutzer mit `onboardingCompleted === false` von jeder
-  geschützten Seite auf `/willkommen` (`OnboardingPage`) um, auch nach einer erneuten Anmeldung;
+* **Routenschutz**: `ProtectedRoute` prüft in fester Reihenfolge: 1. Ist `emailConfirmed === false`, führt jede
+  geschützte Seite auf `/bestaetigung-ausstehend` (`ConfirmationPendingPage`); ist die Adresse bestätigt,
+  führt diese Seite zurück zum Dashboard. Die Seite bietet „Ich habe bestätigt“ (ruft `GET /api/auth/me` ab,
+  das bei bestätigter Adresse das Cookie erneuert), „Erneut senden“ (30 Sekunden Wartezeit) und „Abmelden“.
+  Die Registrierung navigiert direkt dorthin. 2. Ist der Einstieg offen, geht es auf `/willkommen`. 3. Sonst
+  öffnet sich die Anwendung.
+* **Pflicht-Einstieg**: `ProtectedRoute` leitet Benutzer mit `onboardingCompleted === false` (nach der
+  E-Mail-Bestätigung) von jeder geschützten Seite auf `/willkommen` (`OnboardingPage`) um, auch nach einer erneuten Anmeldung;
   ist der Einstieg abgeschlossen, führt `/willkommen` zurück zum Dashboard. Die Seite bietet nur
   „Abmelden“, keinen Überspringen-Weg. Die Entscheidung trifft der Server beim Speichern des Profils.
 * **Darstellung**: Farben als CSS-Variablen (`index.css`), Modus über die Klasse `dark`, Akzentfarbe über
@@ -331,8 +349,8 @@ frontend/src/
 * **Anmeldeseiten**: Anmeldung, Registrierung, „Passwort vergessen“, „Neues Passwort festlegen“ und die
   E-Mail-Bestätigung teilen sich `AuthLayout` (Markenfläche links, Formular rechts). `PasswordInput`
   (mit Schalter zum Anzeigen) und `PasswordRules` (Live-Checkliste der Passwortregeln) sind gemeinsame
-  Bausteine in `features/auth`; Registrierung und Passwort-Reset verwenden dieselben Regeln. `EmailConfirmationBanner`
-  erscheint im `AppLayout`, solange `emailConfirmed === false`, und bietet „Erneut senden“ mit 30 Sekunden Wartezeit.
+  Bausteine in `features/auth`; Registrierung und Passwort-Reset verwenden dieselben Regeln. Die Wartseite
+  `ConfirmationPendingPage` nutzt ebenfalls `AuthLayout` und ersetzt den früheren Hinweisbalken im `AppLayout`.
 * **Code-Splitting**: Seiten werden bei Bedarf geladen; React und TanStack Query liegen in eigenen
   Chunks, Recharts nur im Chunk der Statistikseite.
 

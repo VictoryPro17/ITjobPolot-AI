@@ -1,8 +1,10 @@
-﻿using JobPilot.Domain.Entities;
+﻿using JobPilot.Api.Authorization;
+using JobPilot.Domain.Entities;
 using JobPilot.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace JobPilot.Api.Extensions;
@@ -30,7 +32,8 @@ public static class IdentityServiceExtensions
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 options.Lockout.AllowedForNewUsers = true;
 
-                // Bestaetigung ist erwuenscht, aber keine Voraussetzung fuer die Anmeldung.
+                // Anmelden darf man auch unbestaetigt (um die Mail erneut anzufordern);
+                // die Nutzung der App sperrt die Standard-Policy (siehe EmailConfirmation).
                 options.SignIn.RequireConfirmedAccount = false;
 
                 // Bestaetigungslinks laufen laenger als Passwort-Links (eigener Anbieter, siehe unten).
@@ -39,6 +42,7 @@ public static class IdentityServiceExtensions
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<JobPilotDbContext>()
             .AddSignInManager()
+            .AddClaimsPrincipalFactory<JobPilotClaimsPrincipalFactory>()
             .AddDefaultTokenProviders()
             .AddTokenProvider<EmailConfirmationTokenProvider>(EmailConfirmationTokenProvider.ProviderName);
 
@@ -78,10 +82,23 @@ public static class IdentityServiceExtensions
                 ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return Task.CompletedTask;
             };
-            options.Events.OnRedirectToAccessDenied = ctx =>
+            options.Events.OnRedirectToAccessDenied = async ctx =>
             {
                 ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                return Task.CompletedTask;
+
+                // Fehlende Bestaetigung ist der haeufigste Grund; dann eine klare Meldung liefern.
+                if (!EmailConfirmation.IsConfirmed(ctx.HttpContext.User))
+                {
+                    await ctx.Response.WriteAsJsonAsync(
+                        new ProblemDetails
+                        {
+                            Status = StatusCodes.Status403Forbidden,
+                            Title = "E-Mail-Adresse noch nicht bestätigt.",
+                            Detail = EmailConfirmation.ForbiddenDetail
+                        },
+                        options: (System.Text.Json.JsonSerializerOptions?)null,
+                        contentType: "application/problem+json");
+                }
             };
         });
 

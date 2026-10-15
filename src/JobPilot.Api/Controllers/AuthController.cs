@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using JobPilot.Api.Authorization;
 using JobPilot.Api.Services;
 using JobPilot.Application.Abstractions;
 using JobPilot.Application.Auth;
@@ -204,13 +205,19 @@ public class AuthController(
             throw new ValidationFailedException("token", InvalidConfirmationLinkMessage);
         }
 
+        // Ist derselbe Benutzer in diesem Browser angemeldet, sofort ein Cookie mit "bestaetigt" ausstellen.
+        if (userManager.GetUserId(User) == user.Id.ToString())
+        {
+            await signInManager.RefreshSignInAsync(user);
+        }
+
         logger.LogInformation("E-Mail-Adresse von {UserId} bestaetigt.", user.Id);
         return NoContent();
     }
 
     /// <summary>Verschickt die Bestaetigungsmail fuer den angemeldeten Benutzer erneut.</summary>
     [HttpPost("resend-confirmation")]
-    [Authorize]
+    [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResendConfirmation(CancellationToken cancellationToken)
     {
@@ -225,7 +232,7 @@ public class AuthController(
 
     /// <summary>Beendet die Sitzung und loescht das Cookie.</summary>
     [HttpPost("logout")]
-    [Authorize]
+    [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     public async Task<IActionResult> Logout()
     {
         await signInManager.SignOutAsync();
@@ -234,10 +241,18 @@ public class AuthController(
 
     /// <summary>Liefert das Profil des angemeldeten Benutzers.</summary>
     [HttpGet("me")]
-    [Authorize]
+    [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     public async Task<ActionResult<CurrentUserResponse>> Me()
     {
         var user = await GetCurrentUserAsync();
+
+        // Wurde die Adresse inzwischen (z. B. in einem anderen Browser) bestaetigt, oder stammt das
+        // Cookie aus der Zeit vor der Bestaetigungspflicht, wird es mit dem aktuellen Status erneuert.
+        if (EmailConfirmation.IsStale(User, user))
+        {
+            await signInManager.RefreshSignInAsync(user);
+        }
+
         return Ok(await BuildResponseAsync(user));
     }
 
@@ -421,7 +436,7 @@ public class AuthController(
 
     /// <summary>Exportiert alle eigenen Daten als JSON-Datei (ohne hochgeladene Dateien).</summary>
     [HttpGet("export")]
-    [Authorize]
+    [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Export(CancellationToken cancellationToken)
     {
@@ -433,7 +448,7 @@ public class AuthController(
 
     /// <summary>Loescht das eigene Konto samt aller Daten und Dateien endgueltig.</summary>
     [HttpDelete("account")]
-    [Authorize]
+    [Authorize(Policy = EmailConfirmation.AllowUnconfirmedPolicy)]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> DeleteAccount(DeleteAccountRequest request, CancellationToken cancellationToken)
     {

@@ -1,4 +1,4 @@
-import { deleteAccount, deleteUser, expect, openNavigation, registerUser, test, TEST_PASSWORD, uniqueEmail } from "./fixtures";
+import { deleteAccount, deleteUser, expect, openNavigation, registerUser, test, TEST_PASSWORD, uniqueEmail, waitForMailLink } from "./fixtures";
 
 test.describe("Anmeldung", () => {
   test("Registrieren, Abmelden und wieder Anmelden", async ({ page, baseURL }) => {
@@ -12,7 +12,13 @@ test.describe("Anmeldung", () => {
     await page.getByLabel("Passwort wiederholen").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Registrieren" }).click();
 
-    // Neue Konten landen im Pflicht-Einstieg und richten zuerst ihr Profil ein.
+    // Neue Konten bestaetigen zuerst ihre E-Mail-Adresse ...
+    await expect(page).toHaveURL("/bestaetigung-ausstehend");
+    const link = await waitForMailLink(email, "/email-bestaetigen");
+    await page.goto(`${link.pathname}${link.search}`);
+    await page.getByRole("link", { name: "Weiter zu JobPilot" }).click();
+
+    // ... und richten dann im Pflicht-Einstieg ihr Profil ein.
     await expect(page).toHaveURL("/willkommen");
     await page.getByRole("button", { name: /Selbst ausfüllen/ }).click();
     await page.getByLabel("Wunschposition *").fill("Frontend Developer");

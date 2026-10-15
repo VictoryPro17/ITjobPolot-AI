@@ -38,8 +38,8 @@ export function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register({ firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password });
-      // Neue Konten richten zuerst ihr Profil ein (Pflicht-Einstieg).
-      navigate("/willkommen", { replace: true });
+      // Neue Konten bestaetigen zuerst ihre E-Mail-Adresse, danach folgt der Pflicht-Einstieg.
+      navigate("/bestaetigung-ausstehend", { replace: true });
     } catch (requestError) {
       if (requestError instanceof ApiError) {
         if (requestError.status === 400 && Object.keys(requestError.fieldErrors).length > 0) {

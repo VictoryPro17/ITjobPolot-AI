@@ -173,12 +173,12 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     await shoot(login, "/passwort-vergessen", "passwort-vergessen");
     await anonymous.close();
 
-    // --- Hinweis zur E-Mail-Bestaetigung (Konto noch nicht bestaetigt) ---
+    // --- Wartseite: Konto ist noch nicht bestaetigt ---
     await deleteAccount(baseURL!, "alex.neu@example.com").catch(() => undefined);
     const unconfirmed = await registerUser(baseURL!, "Alex", { lastName: "Beispiel", email: "alex.neu@example.com", confirmed: false });
     try {
       const hint = await signedInPage(browser, baseURL!, unconfirmed, { ...desktop, colorScheme: "light" });
-      await shoot(hint.page, "/", "email-hinweis");
+      await shoot(hint.page, "/bestaetigung-ausstehend", "bestaetigung-ausstehend");
       await hint.context.close();
     } finally {
       await deleteUser(unconfirmed);

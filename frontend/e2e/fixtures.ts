@@ -61,9 +61,18 @@ export async function registerUser(
   });
   expect(response.status(), `Registrierung fehlgeschlagen: ${await response.text()}`).toBe(201);
 
-  // Neue Konten muessen erst ihr Profil einrichten (Pflicht-Einstieg). Fuer die meisten Tests wird
-  // das hier per API erledigt; Tests des Einstiegs selbst setzen onboarded: false.
-  if (options.onboarded !== false) {
+  // 1. E-Mail-Adresse ueber den echten Link aus Mailpit bestaetigen (Pflicht; ohne sie sperrt die API).
+  if (options.confirmed !== false) {
+    const link = await waitForMailLink(email, "/email-bestaetigen", { after: registeredAt });
+    const confirm = await api.post("/api/auth/confirm-email", {
+      data: { userId: link.searchParams.get("userId"), token: link.searchParams.get("token") },
+    });
+    expect(confirm.status(), `E-Mail-Bestaetigung fehlgeschlagen: ${await confirm.text()}`).toBe(204);
+  }
+
+  // 2. Pflicht-Einstieg (Profil) per API erledigen; Tests des Einstiegs selbst setzen onboarded: false.
+  //    Ohne Bestaetigung ist das Profil gesperrt, daher dann ueberspringen.
+  if (options.onboarded !== false && options.confirmed !== false) {
     const profile = await api.put("/api/auth/profile", {
       data: {
         firstName,
@@ -80,15 +89,6 @@ export async function registerUser(
       },
     });
     expect(profile.ok(), `Einstieg abschliessen fehlgeschlagen: ${await profile.text()}`).toBeTruthy();
-  }
-
-  // E-Mail-Adresse ueber den echten Link aus Mailpit bestaetigen, damit kein Hinweisbalken erscheint.
-  if (options.confirmed !== false) {
-    const link = await waitForMailLink(email, "/email-bestaetigen", { after: registeredAt });
-    const confirm = await api.post("/api/auth/confirm-email", {
-      data: { userId: link.searchParams.get("userId"), token: link.searchParams.get("token") },
-    });
-    expect(confirm.status(), `E-Mail-Bestaetigung fehlgeschlagen: ${await confirm.text()}`).toBe(204);
   }
 
   async function createApplication(data: SeedApplication): Promise<CreatedApplication> {

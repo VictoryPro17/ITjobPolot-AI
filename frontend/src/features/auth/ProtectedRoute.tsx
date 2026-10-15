@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/AuthProvider";
 
 export const ONBOARDING_PATH = "/willkommen";
+export const CONFIRMATION_PENDING_PATH = "/bestaetigung-ausstehend";
 
 export function ProtectedRoute() {
   const { user, isLoading } = useAuth();
@@ -16,7 +17,19 @@ export function ProtectedRoute() {
     return <Navigate to="/anmelden" replace state={{ from: location.pathname }} />;
   }
 
-  // Pflicht-Einstieg: Ohne eingerichtetes Profil fuehrt jede Seite zur Willkommensseite.
+  // 1. E-Mail-Bestaetigung ist Pflicht; der Server sperrt ohne sie alle Daten-Endpunkte (403).
+  const confirmationOpen = user.emailConfirmed === false;
+  if (confirmationOpen && location.pathname !== CONFIRMATION_PENDING_PATH) {
+    return <Navigate to={CONFIRMATION_PENDING_PATH} replace />;
+  }
+  if (!confirmationOpen && location.pathname === CONFIRMATION_PENDING_PATH) {
+    return <Navigate to="/" replace />;
+  }
+  if (confirmationOpen) {
+    return <Outlet />;
+  }
+
+  // 2. Pflicht-Einstieg: Ohne eingerichtetes Profil fuehrt jede Seite zur Willkommensseite.
   const onboardingOpen = user.onboardingCompleted === false;
   if (onboardingOpen && location.pathname !== ONBOARDING_PATH) {
     return <Navigate to={ONBOARDING_PATH} replace />;

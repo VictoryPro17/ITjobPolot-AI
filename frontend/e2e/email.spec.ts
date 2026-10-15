@@ -13,22 +13,48 @@ test.describe("E-Mail-Bestätigung", () => {
     await deleteUser(user);
   });
 
-  test("Hinweisbalken bis zur Bestätigung über den Link aus der E-Mail", async ({ page }) => {
+  test("Ohne Bestätigung ist die App gesperrt; der Link aus der E-Mail schaltet sie frei", async ({ page }) => {
     await signIn(page, user);
-    await page.goto("/");
-    await expect(page.getByText("Bitte bestätige deine E-Mail-Adresse")).toBeVisible();
+    for (const path of ["/", "/bewerbungen", "/einstellungen", "/willkommen"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL("/bestaetigung-ausstehend");
+    }
+    await expect(page.getByRole("heading", { name: "Bitte bestätige deine E-Mail-Adresse" })).toBeVisible();
+
+    // "Ich habe bestätigt" ohne Bestaetigung: Hinweis, Seite bleibt gesperrt.
+    await page.getByRole("button", { name: "Ich habe bestätigt" }).click();
+    await expect(page.getByText("Deine E-Mail-Adresse ist noch nicht bestätigt.")).toBeVisible();
 
     // Erneut senden verschickt eine zweite Mail.
-    const before = new Date();
+    const before = new Date(Date.now() - 2_000);
     await page.getByRole("button", { name: "Erneut senden" }).click();
     await expect(page.getByText("Neue E-Mail verschickt.")).toBeVisible();
     const link = await waitForMailLink(user.email, "/email-bestaetigen", { after: before });
 
     await page.goto(`${link.pathname}${link.search}`);
     await expect(page.getByRole("heading", { name: "E-Mail-Adresse bestätigt" })).toBeVisible();
-    await page.getByRole("button", { name: "Weiter zu JobPilot" }).or(page.getByRole("link", { name: "Weiter zu JobPilot" })).click();
-    await expect(page).toHaveURL("/");
-    await expect(page.getByText("Bitte bestätige deine E-Mail-Adresse")).toHaveCount(0);
+    await page.getByRole("link", { name: "Weiter zu JobPilot" }).click();
+
+    // Nach der Bestaetigung folgt der Pflicht-Einstieg (Profil einrichten).
+    await expect(page).toHaveURL("/willkommen");
+  });
+
+  test("Bestätigung in einem anderen Browser: \"Ich habe bestätigt\" schaltet frei", async ({ page }) => {
+    await signIn(page, user);
+    await page.goto("/");
+    await expect(page).toHaveURL("/bestaetigung-ausstehend");
+
+    // Link anderswo oeffnen (hier direkt per API, ohne Sitzung).
+    const link = await waitForMailLink(user.email, "/email-bestaetigen");
+    const response = await fetch(new URL("/api/auth/confirm-email", page.url()), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: link.searchParams.get("userId"), token: link.searchParams.get("token") }),
+    });
+    expect(response.status).toBe(204);
+
+    await page.getByRole("button", { name: "Ich habe bestätigt" }).click();
+    await expect(page).toHaveURL("/willkommen");
   });
 
   test("Manipulierter Bestätigungslink zeigt einen Fehler", async ({ page }) => {

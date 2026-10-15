@@ -66,7 +66,8 @@ Erinnerungen.
 
 ### Pflicht-Einstieg nach der Registrierung
 
-Nach der Registrierung führt JobPilot auf die Willkommensseite (`/willkommen`). Dort wird das Profil
+Nach der Registrierung und der E-Mail-Bestätigung (siehe nächster Abschnitt) führt JobPilot auf die
+Willkommensseite (`/willkommen`). Dort wird das Profil
 entweder aus einem hochgeladenen Lebenslauf vorausgefüllt oder von Hand ausgefüllt. Pflicht sind eine
 Wunschposition und mindestens ein Skill. Bis dahin leitet jede geschützte Seite zur Willkommensseite um;
 der Abschluss wird serverseitig beim Speichern des Profils entschieden. Bestehende Konten gelten als
@@ -76,11 +77,17 @@ abgeschlossen.
 
 ### Konto, E-Mail-Bestätigung und Passwort zurücksetzen
 
-Nach der Registrierung verschickt JobPilot automatisch eine Bestätigungsmail; bis zur Bestätigung weist ein
-Hinweisbalken mit „Erneut senden“ darauf hin, die Anmeldung funktioniert aber schon vorher. Wer das Passwort
+Nach der Registrierung verschickt JobPilot automatisch eine Bestätigungsmail. Die Bestätigung ist **Pflicht**:
+Bis die Adresse bestätigt ist, zeigt die Anwendung nur die Seite „Bitte bestätige deine E-Mail-Adresse“
+(`/bestaetigung-ausstehend`) mit den Schaltflächen „Ich habe bestätigt“, „Erneut senden“ und „Abmelden“.
+Der Server erzwingt die Regel selbst: Geschützte Endpunkte antworten ohne Bestätigung mit `403`. Die Anmeldung
+bleibt möglich, damit sich eine neue Mail anfordern lässt. Erst danach folgt der Pflicht-Einstieg
+(`/willkommen`). Wer das Passwort
 vergessen hat, fordert über „Passwort vergessen?“ auf der Anmeldeseite einen Link an, der 2 Stunden gültig ist
 und nur einmal funktioniert. Die Registrierung zeigt die Passwortregeln live als Checkliste. In der Entwicklung
 landen alle E-Mails in Mailpit (http://localhost:8025).
+
+<img src="docs/screenshots/bestaetigung-ausstehend.png" width="100%" alt="Seite Bitte bestätige deine E-Mail-Adresse mit den Schaltflächen Ich habe bestätigt und Erneut senden">
 
 <img src="docs/screenshots/anmeldung.png" width="100%" alt="Anmeldeseite mit Link Passwort vergessen">
 
@@ -403,6 +410,12 @@ z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://lo
 * ASP.NET Core Identity mit Passwortrichtlinie (mindestens 10 Zeichen) und Kontosperre nach
   fünf Fehlversuchen für 15 Minuten.
 * `HttpOnly`-, `Secure`- und `SameSite`-Cookies.
+* Pflicht zur E-Mail-Bestätigung, serverseitig erzwungen: Die Standard-Autorisierung verlangt den Claim
+  `jobpilot:email_confirmed` mit dem Wert `true`. Ohne Bestätigung antworten alle geschützten Endpunkte mit
+  `403` („E-Mail-Adresse noch nicht bestätigt.“). Ausnahmen sind nur `GET /api/auth/me`,
+  `POST /api/auth/logout`, `POST /api/auth/resend-confirmation`, `GET /api/auth/export` und
+  `DELETE /api/auth/account` sowie die öffentlichen Endpunkte (Registrierung, Anmeldung, Passwort
+  zurücksetzen, E-Mail-Bestätigung, Health). Bestehende Konten wurden per Migration als bestätigt markiert.
 * Serverseitige Autorisierung; alle Abfragen filtern zwingend nach der `UserId` aus den Claims.
 * Rate Limiting pro IP: 120 Anfragen pro Minute, für Anmeldung, Registrierung sowie Passwort-Zurücksetzen und
   E-Mail-Bestätigung 10 pro Minute (über `RateLimiting:*` konfigurierbar).
