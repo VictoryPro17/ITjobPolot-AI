@@ -49,7 +49,7 @@ function today() {
 export async function registerUser(
   baseURL: string,
   firstName = "Erika",
-  options: { email?: string; lastName?: string } = {},
+  options: { email?: string; lastName?: string; onboarded?: boolean } = {},
 ): Promise<TestUser> {
   const api = await playwrightRequest.newContext({ baseURL });
   const email = options.email ?? uniqueEmail();
@@ -58,6 +58,27 @@ export async function registerUser(
     data: { email, password: TEST_PASSWORD, firstName, lastName: options.lastName ?? "Test" },
   });
   expect(response.status(), `Registrierung fehlgeschlagen: ${await response.text()}`).toBe(201);
+
+  // Neue Konten muessen erst ihr Profil einrichten (Pflicht-Einstieg). Fuer die meisten Tests wird
+  // das hier per API erledigt; Tests des Einstiegs selbst setzen onboarded: false.
+  if (options.onboarded !== false) {
+    const profile = await api.put("/api/auth/profile", {
+      data: {
+        firstName,
+        lastName: options.lastName ?? "Test",
+        targetJobTitle: "Softwareentwickler",
+        location: null,
+        profileSummary: null,
+        experienceSummary: null,
+        educationSummary: null,
+        resumeText: null,
+        skills: ["TypeScript"],
+        themePreference: null,
+        accentColor: null,
+      },
+    });
+    expect(profile.ok(), `Einstieg abschliessen fehlgeschlagen: ${await profile.text()}`).toBeTruthy();
+  }
 
   async function createApplication(data: SeedApplication): Promise<CreatedApplication> {
     const status = data.status ?? "Applied";

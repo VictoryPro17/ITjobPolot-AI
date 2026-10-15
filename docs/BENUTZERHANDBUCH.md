@@ -39,7 +39,31 @@ Dein Passwort muss diese Regeln erfüllen:
 - mindestens ein Kleinbuchstabe
 - mindestens eine Ziffer
 
-Klicke danach auf „Registrieren“. Nach erfolgreicher Registrierung gelangst du direkt in die Anwendung. Falls du bereits ein Konto hast, wählst du unten auf der Seite „Anmelden“.
+Klicke danach auf „Registrieren“. Falls du bereits ein Konto hast, wählst du unten auf der Seite „Anmelden“.
+
+### Profil einrichten: die Willkommensseite
+
+Nach der Registrierung landest du nicht sofort im Dashboard, sondern auf der Willkommensseite („Willkommen, <Vorname>! Richte zuerst dein Profil ein.“). JobPilot vergleicht Stellen mit deinem Profil. Ohne Wunschposition und Skills sind Match-Analyse und Anschreiben kaum aussagekräftig, deshalb ist dieser Schritt verpflichtend und lässt sich nicht überspringen.
+
+<img src="screenshots/willkommen.png" alt="Willkommensseite mit den Optionen Lebenslauf hochladen (empfohlen) und Selbst ausfüllen" width="100%">
+
+Oben zeigt eine Fortschrittsanzeige die zwei Schritte „Startpunkt wählen“ und „Profil prüfen“. Im ersten Schritt wählst du, wie du dein Profil anlegen möchtest:
+
+- **Lebenslauf hochladen (empfohlen)**: Ziehe eine Datei (PDF, DOCX, TXT oder MD, höchstens 10 MB) auf die Fläche oder wähle sie über „auswählen“ aus. JobPilot liest Name, Wunschposition, Erfahrung und Skills aus. Mit lokaler KI kann das einige Sekunden dauern. Danach landest du direkt im zweiten Schritt, in dem die erkannten Angaben bereits eingetragen sind. Bereits ausgefüllte Felder überschreibt das Auslesen nicht. Gespeichert wird erst, wenn du den Schritt abschließt.
+- **Selbst ausfüllen**: Du hast keinen Lebenslauf zur Hand? Dann gelangst du mit leeren Feldern in den zweiten Schritt und trägst die wichtigsten Angaben von Hand ein.
+
+Im zweiten Schritt „Profil prüfen“ kontrollierst und ergänzt du die Angaben:
+
+<img src="screenshots/willkommen-profil.png" alt="Willkommensseite, Schritt Profil prüfen mit Vorname, Nachname, Wunschposition, Standort, Skills und Kurzbeschreibung" width="100%">
+
+- **Vorname**, **Nachname** und **Standort**
+- **Wunschposition** (Pflichtfeld, mit * markiert)
+- **Skills** (Pflichtfeld, mit * markiert): mindestens ein Skill, einzeln mit Enter oder Komma hinzugefügt
+- **Kurzbeschreibung** (optional): zwei, drei Sätze über dich als Grundlage für den Einstieg im Anschreiben
+
+Fehlt die Wunschposition oder ist kein Skill eingetragen, zeigt das Formular einen Hinweis. Mit „Zurück“ kehrst du zur Auswahl des Startpunkts zurück. Klicke auf „Profil speichern und loslegen“, um den Einstieg abzuschließen. Danach öffnet sich das Dashboard.
+
+Bis dahin führt jede Seite von JobPilot zur Willkommensseite zurück, auch nach einer erneuten Anmeldung. Angeboten wird dort nur „Abmelden“. Ob der Einstieg abgeschlossen ist, entscheidet der Server beim Speichern des Profils: Sind Wunschposition und mindestens ein Skill gespeichert, gilt er als abgeschlossen. Das bleibt auch so, wenn du später Angaben änderst oder Skills entfernst. Alle weiteren Angaben, etwa Berufserfahrung, Ausbildung oder Profilbild, ergänzt du später unter „Einstellungen“ (siehe [Profil einrichten](#2-profil-einrichten)). Konten, die vor dieser Funktion angelegt wurden, gelten als abgeschlossen und müssen den Einstieg nicht nachholen.
 
 ### Anmelden
 
@@ -103,7 +127,7 @@ Je vollständiger dein Profil ist, desto besser funktionieren die Match-Analyse 
 
 Im Bereich „Profil“ pflegst du:
 
-- **Profilbild**: PNG oder JPG, maximal 10 MB. Das Bild wird quadratisch auf 256 × 256 Pixel zugeschnitten und sofort gespeichert. Mit „Hochladen“ bzw. „Ändern“ wählst du eine Datei aus, mit „Entfernen“ löschst du das Bild wieder.
+- **Profilbild**: PNG oder JPG, maximal 10 MB. Das Bild wird schon in deinem Browser quadratisch auf 256 × 256 Pixel verkleinert und dann sofort gespeichert. Mit „Hochladen“ bzw. „Ändern“ wählst du eine Datei aus, mit „Entfernen“ löschst du das Bild wieder.
 - **Name** (Vorname und Nachname): Er erscheint in Anschreiben und in der Begrüßung.
 - **Wunschposition**, zum Beispiel „Backend Developer“. Sie hilft der Analyse, passende Stellen zu erkennen.
 - **Standort**, zum Beispiel „Berlin“.
@@ -308,6 +332,8 @@ Die Analyse läuft entweder mit einer lokal betriebenen KI oder regelbasiert:
 - „KI nicht erreichbar – regelbasiert“: Die KI ist eingerichtet, antwortet aber gerade nicht. JobPilot arbeitet dann regelbasiert weiter.
 
 Den Score selbst berechnet JobPilot in jedem Fall regelbasiert.
+
+Die Empfehlungen und Lernthemen der lokalen KI bereinigt JobPilot, bevor es sie anzeigt: Floskeln und Wiederholungen entfallen, ähnliche Einträge werden zusammengefasst, und zu einem einzelnen Skill erscheinen höchstens zwei Empfehlungen. Bleiben zu wenige übrig, ergänzt JobPilot sie mit regelbasierten Empfehlungen. Das gilt auch für ältere, bereits gespeicherte Analysen.
 
 ### Analyse im KI-Assistenten
 
@@ -533,6 +559,12 @@ Nein. Der Export enthält nur Angaben zu deinen Dokumenten (Name, Typ, Größe, 
 
 **Mein hochgeladener Lebenslauf hat meine Angaben nicht ersetzt. Ist das ein Fehler?**
 Nein, das ist so gewollt. Beim Auslesen eines Lebenslaufs füllt JobPilot nur leere Felder aus und ergänzt Skills. Bereits ausgefüllte Felder bleiben unverändert. Außerdem werden die Vorschläge erst mit „Speichern“ übernommen. Möchtest du ein Feld neu befüllen lassen, leere es vorher.
+
+**Warum lande ich nach der Registrierung oder Anmeldung auf der Willkommensseite?**
+Dein Profil ist noch nicht eingerichtet. Solange Wunschposition und mindestens ein Skill fehlen, führt jede Seite zur Willkommensseite zurück. Trage beides ein und klicke auf „Profil speichern und loslegen“, danach steht dir die ganze Anwendung offen.
+
+**Kann ich die Willkommensseite überspringen?**
+Nein. Die einzige Alternative dort ist „Abmelden“. Ein einmal abgeschlossener Einstieg bleibt abgeschlossen, auch wenn du später Skills oder die Wunschposition wieder entfernst.
 
 **Kann ich meine E-Mail-Adresse ändern?**
 Nein. Die E-Mail-Adresse wird für die Anmeldung verwendet und lässt sich nicht ändern.

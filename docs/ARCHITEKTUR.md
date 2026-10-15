@@ -176,6 +176,11 @@ erfolgreichen Commit gelöscht.
 * **Mandantentrennung**: Die Benutzer-ID stammt immer aus den Claims (`ICurrentUser`), nie aus dem
   Request. Jede Abfrage filtert nach `UserId`. Fremde Datensätze werden wie nicht vorhandene behandelt
   und mit **404** beantwortet, damit sich ihre Existenz nicht erraten lässt.
+* **Pflicht-Einstieg**: `ApplicationUser.OnboardingCompletedAt` hält fest, ob das Profil eingerichtet
+  wurde (`null` bei neuen Konten). `PUT /api/auth/profile` ruft `TryCompleteOnboarding` auf: Sind
+  Wunschposition und mindestens ein Skill gespeichert, wird der Zeitpunkt gesetzt, und ein einmal
+  gesetzter Wert bleibt bestehen. Die Antwort enthält `onboardingCompleted`. Die Migration
+  `AddUserOnboarding` markiert bestehende Konten als abgeschlossen.
 * **Rate Limiting** pro IP: global 120 Anfragen pro Minute, Policy `auth` (Anmeldung, Registrierung,
   Passwortänderung, Export, Kontolöschung) 10 pro Minute. Beide Werte sind über `RateLimiting:*`
   konfigurierbar.
@@ -190,7 +195,8 @@ flowchart TD
     Check -- ja --> Llm["Ollama: JSON nach Schema"]
     Llm -- Fehler, Timeout,<br/>ungültiges JSON --> Result
     Llm --> Guard["Absicherung:<br/>nur wörtlich belegte Anforderungen,<br/>Texte gegen Widersprüche prüfen"]
-    Guard --> Result
+    Guard --> Clean["Bereinigung:<br/>RecommendationCleaner"]
+    Clean --> Result
 ```
 
 * **Score immer regelbasiert**: Skills 70 %, Erfahrung 15 %, Position 15 % (`HeuristicJobMatchAnalyzer`).
@@ -199,6 +205,14 @@ flowchart TD
 * **Absicherung**: Zusätzliche Anforderungen werden nur übernommen, wenn sie wörtlich in der
   Stellenbeschreibung stehen und fachlich sind; Treffer zählen nur, wenn sie im Profil oder Lebenslauf
   vorkommen.
+* **Bereinigung**: `RecommendationCleaner` arbeitet deterministisch und ohne KI auf Empfehlungen und
+  Lernthemen. Er entfernt Füllfloskeln am Satzende (z. B. „…, um deine Fähigkeiten zu erweitern“),
+  verwirft Sätze mit Wortwiederholungen (z. B. „Azure-Tools und -Tools“) und Fast-Duplikate (nur unter
+  Einträgen zu denselben Skills) und lässt höchstens zwei Einträge je Skill zu. Bleiben weniger als zwei
+  übrig, werden die regelbasierten Empfehlungen ergänzt; Lernthemen bleiben Stichworte ohne Schlusspunkt.
+  Zusätzliche Anforderungen, die das Modell als Aufzählung liefert (z. B. „Docker, Kubernetes und Azure“),
+  werden in einzelne Skills zerlegt. `AiService` wendet den Bereiniger auch beim Lesen der zuletzt
+  gespeicherten Analyse an, sodass ältere Analysen bereinigt ausgeliefert werden.
 * **Rückfall**: Ist Ollama nicht erreichbar, zu langsam, liefert ungültiges JSON oder ist das Tageslimit
   (`Ai:DailyRequestLimitPerUser`) erreicht, wird das regelbasierte Ergebnis verwendet.
 * Analysen und Anschreiben werden gespeichert und sind über die API wieder abrufbar (letzte Analyse,
@@ -246,6 +260,10 @@ frontend/src/
   `ProblemDetails` in `ApiError` inklusive Feldfehlern.
 * **Kanban-Board**: Jede Spalte lädt seitenweise (15 Karten) per `useInfiniteQuery`. Statuswechsel
   werden optimistisch angezeigt und bei Fehlern zurückgesetzt.
+* **Pflicht-Einstieg**: `ProtectedRoute` leitet Benutzer mit `onboardingCompleted === false` von jeder
+  geschützten Seite auf `/willkommen` (`OnboardingPage`) um, auch nach einer erneuten Anmeldung;
+  ist der Einstieg abgeschlossen, führt `/willkommen` zurück zum Dashboard. Die Seite bietet nur
+  „Abmelden“, keinen Überspringen-Weg. Die Entscheidung trifft der Server beim Speichern des Profils.
 * **Darstellung**: Farben als CSS-Variablen (`index.css`), Modus über die Klasse `dark`, Akzentfarbe über
   `data-accent` am `<html>`-Element. Die Auswahl wird lokal zwischengespeichert und im Konto
   gespeichert; nach der Anmeldung übernimmt `AppearanceSync` den Wert aus dem Konto.

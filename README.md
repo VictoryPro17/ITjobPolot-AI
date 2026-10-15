@@ -63,6 +63,16 @@ Erinnerungen.
   </tr>
 </table>
 
+### Pflicht-Einstieg nach der Registrierung
+
+Nach der Registrierung führt JobPilot auf die Willkommensseite (`/willkommen`). Dort wird das Profil
+entweder aus einem hochgeladenen Lebenslauf vorausgefüllt oder von Hand ausgefüllt. Pflicht sind eine
+Wunschposition und mindestens ein Skill. Bis dahin leitet jede geschützte Seite zur Willkommensseite um;
+der Abschluss wird serverseitig beim Speichern des Profils entschieden. Bestehende Konten gelten als
+abgeschlossen.
+
+<img src="docs/screenshots/willkommen.png" width="70%" alt="Willkommensseite mit den Optionen Lebenslauf hochladen und Selbst ausfüllen">
+
 ### Kanban-Board
 
 Das Board zeigt die Bewerbungen nach Status in Spalten. Karten lassen sich per Drag and Drop zwischen
@@ -281,6 +291,10 @@ standardmäßig aus.
 * **Abgesichert**: Skills und Anforderungen werden nur übernommen, wenn sie wörtlich im Lebenslauf bzw.
   in der Stellenbeschreibung stehen. Zusammenfassungen, die Abgedecktes als fehlend darstellen, und
   Empfehlungen, fehlende Skills anzugeben, werden verworfen.
+* **Bereinigte Empfehlungen**: Empfehlungen und Lernthemen werden von Füllfloskeln und Wortwiederholungen
+  befreit, Fast-Duplikate entfallen, je Skill bleiben höchstens zwei Einträge; bei Bedarf wird mit
+  regelbasierten Empfehlungen aufgefüllt. Aufzählungen wie „Docker, Kubernetes und Azure“ werden in
+  einzelne Skills zerlegt.
 * **Automatischer Rückfall**: Ist Ollama nicht erreichbar, zu langsam, liefert ungültiges JSON oder ist das
   Tageslimit erreicht, wird regelbasiert gearbeitet. `GET /api/ai/status` zeigt den aktuellen Zustand.
 * **Dauer** (RTX 3050 Ti, 4 GB): CV etwa 10–13 s, Analyse etwa 5 s. Der allererste Aufruf nach dem

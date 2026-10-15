@@ -7,6 +7,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
+import { OnboardingPage } from "@/pages/OnboardingPage";
 
 // Seiten ausser Anmeldung und Dashboard werden erst beim ersten Aufruf geladen,
 // damit z. B. die Diagramm-Bibliothek nur auf der Statistikseite ankommt.
@@ -26,6 +27,7 @@ export default function App() {
       <Route path="anmelden" element={<LoginPage />} />
       <Route path="registrieren" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="willkommen" element={<OnboardingPage />} />
         <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="bewerbungen" element={<ApplicationsPage />} />

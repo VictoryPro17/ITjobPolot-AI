@@ -64,7 +64,7 @@ function toForm(user: CurrentUser): ProfileForm {
 }
 
 /** Uebernimmt Vorschlaege aus dem Lebenslauf nur in leere Felder; Skills werden ergaenzt. */
-function mergeSuggestion(current: ProfileForm, suggestion: ResumeProfileSuggestion): { profile: ProfileForm; filledCount: number } {
+export function mergeSuggestion(current: ProfileForm, suggestion: ResumeProfileSuggestion): { profile: ProfileForm; filledCount: number } {
   const next: ProfileForm = { ...current };
   let filledCount = 0;
 

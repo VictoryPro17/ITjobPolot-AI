@@ -2,6 +2,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/AuthProvider";
 
+export const ONBOARDING_PATH = "/willkommen";
+
 export function ProtectedRoute() {
   const { user, isLoading } = useAuth();
   const location = useLocation();
@@ -12,6 +14,15 @@ export function ProtectedRoute() {
 
   if (!user) {
     return <Navigate to="/anmelden" replace state={{ from: location.pathname }} />;
+  }
+
+  // Pflicht-Einstieg: Ohne eingerichtetes Profil fuehrt jede Seite zur Willkommensseite.
+  const onboardingOpen = user.onboardingCompleted === false;
+  if (onboardingOpen && location.pathname !== ONBOARDING_PATH) {
+    return <Navigate to={ONBOARDING_PATH} replace />;
+  }
+  if (!onboardingOpen && location.pathname === ONBOARDING_PATH) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

@@ -171,6 +171,24 @@ test("Screenshots für die Dokumentation", async ({ browser, baseURL }) => {
     await shoot(login, "/anmelden", "anmeldung");
     await shoot(login, "/registrieren", "registrierung");
     await anonymous.close();
+
+    // --- Pflicht-Einstieg eines neuen Kontos ---
+    const newcomer = await registerUser(baseURL!, "Alex", { lastName: "Beispiel", onboarded: false });
+    try {
+      const welcome = await signedInPage(browser, baseURL!, newcomer, { ...desktop, colorScheme: "light" });
+      await shoot(welcome.page, "/willkommen", "willkommen");
+      await welcome.page.getByRole("button", { name: /Selbst ausfüllen/ }).click();
+      await welcome.page.getByLabel("Wunschposition *").fill("Backend Developer");
+      for (const skill of ["C#", "ASP.NET Core", "PostgreSQL"]) {
+        await welcome.page.getByPlaceholder("z. B. C#, React, Docker").fill(skill);
+        await welcome.page.getByPlaceholder("z. B. C#, React, Docker").press("Enter");
+      }
+      await settle(welcome.page);
+      await welcome.page.screenshot({ path: path.join(OUT_DIR, "willkommen-profil.png") });
+      await welcome.context.close();
+    } finally {
+      await deleteUser(newcomer);
+    }
   } finally {
     await deleteUser(user);
   }

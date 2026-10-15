@@ -28,7 +28,8 @@ export function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register({ firstName: form.firstName, lastName: form.lastName, email: form.email, password: form.password });
-      navigate("/", { replace: true });
+      // Neue Konten richten zuerst ihr Profil ein (Pflicht-Einstieg).
+      navigate("/willkommen", { replace: true });
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : "Die Registrierung ist fehlgeschlagen.");
     } finally {

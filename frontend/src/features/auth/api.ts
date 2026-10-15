@@ -15,6 +15,8 @@ export interface CurrentUser {
   skills: string[];
   themePreference: string;
   accentColor?: string;
+  /** false, solange der Pflicht-Einstieg nach der Registrierung offen ist. */
+  onboardingCompleted?: boolean;
   roles: string[];
   createdAt: string;
   avatarVersion?: number | null;

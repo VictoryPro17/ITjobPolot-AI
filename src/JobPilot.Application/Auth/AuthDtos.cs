@@ -50,4 +50,5 @@ public record CurrentUserResponse(
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt,
     long? AvatarVersion = null,
-    string AccentColor = "blue");
+    string AccentColor = "blue",
+    bool OnboardingCompleted = false);

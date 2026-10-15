@@ -169,6 +169,7 @@ Antwort: `200 OK` mit dem Benutzerprofil. Bei falschen Zugangsdaten und bei gesp
 | `createdAt` | DateTimeOffset | Zeitpunkt der Registrierung |
 | `avatarVersion` | number | Zeitstempel der letzten Bildänderung in Millisekunden (Unix-Zeit); nur vorhanden, wenn ein Profilbild existiert |
 | `accentColor` | string | Akzentfarbe |
+| `onboardingCompleted` | bool | `true`, sobald der Pflicht-Einstieg nach der Registrierung abgeschlossen ist; bei neuen Konten zunächst `false` |
 
 ### PUT /api/auth/profile
 
@@ -186,6 +187,8 @@ Alle Felder werden ersetzt: Textfelder, die fehlen oder leer sind, werden gelös
 | `skills` | string[] | höchstens 100 Einträge, je höchstens 100 Zeichen; leere Einträge werden entfernt, Duplikate (ohne Beachtung der Groß-/Kleinschreibung) zusammengeführt |
 | `themePreference` | string | `light`, `dark`, `system` |
 | `accentColor` | string | `blue`, `green`, `purple` |
+
+Beim Speichern prüft der Server, ob der Pflicht-Einstieg abgeschlossen ist: Sind `targetJobTitle` und mindestens ein Skill gesetzt, wird `onboardingCompleted` dauerhaft auf `true` gesetzt. Das ist nicht umkehrbar, auch nicht durch spätere Änderungen oder das Entfernen der Angaben. Konten, die vor dieser Funktion existierten, wurden per Migration als abgeschlossen markiert.
 
 ### POST /api/auth/profile/resume
 

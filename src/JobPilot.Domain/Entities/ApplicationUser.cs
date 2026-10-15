@@ -44,6 +44,27 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>Akzentfarbe der Oberflaeche ("blue", "green", "purple").</summary>
     public string AccentColor { get; set; } = "blue";
 
+    /// <summary>
+    /// Zeitpunkt, zu dem der Pflicht-Einstieg nach der Registrierung abgeschlossen wurde;
+    /// null bedeutet, dass das Profil noch eingerichtet werden muss.
+    /// </summary>
+    public DateTimeOffset? OnboardingCompletedAt { get; set; }
+
+    /// <summary>
+    /// Schliesst den Einstieg ab, sobald die fuer Analysen noetigen Angaben vorliegen
+    /// (Wunschposition und mindestens ein Skill). Ein einmal abgeschlossener Einstieg bleibt abgeschlossen.
+    /// </summary>
+    /// <returns>true, wenn der Einstieg (jetzt oder frueher) abgeschlossen ist.</returns>
+    public bool TryCompleteOnboarding(DateTimeOffset now)
+    {
+        if (OnboardingCompletedAt is null && !string.IsNullOrWhiteSpace(TargetJobTitle) && Skills.Any(skill => !string.IsNullOrWhiteSpace(skill)))
+        {
+            OnboardingCompletedAt = now;
+        }
+
+        return OnboardingCompletedAt is not null;
+    }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

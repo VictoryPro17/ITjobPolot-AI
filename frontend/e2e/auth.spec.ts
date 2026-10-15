@@ -12,6 +12,14 @@ test.describe("Anmeldung", () => {
     await page.getByLabel("Passwort wiederholen").fill(TEST_PASSWORD);
     await page.getByRole("button", { name: "Registrieren" }).click();
 
+    // Neue Konten landen im Pflicht-Einstieg und richten zuerst ihr Profil ein.
+    await expect(page).toHaveURL("/willkommen");
+    await page.getByRole("button", { name: /Selbst ausfüllen/ }).click();
+    await page.getByLabel("Wunschposition *").fill("Frontend Developer");
+    await page.getByPlaceholder("z. B. C#, React, Docker").fill("React");
+    await page.getByPlaceholder("z. B. C#, React, Docker").press("Enter");
+    await page.getByRole("button", { name: "Profil speichern und loslegen" }).click();
+
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Mira");
 

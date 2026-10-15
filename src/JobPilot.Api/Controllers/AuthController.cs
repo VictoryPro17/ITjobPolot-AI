@@ -36,6 +36,7 @@ public class AuthController(
     IAccountService accountService,
     IAvatarService avatarService,
     IOptions<StorageOptions> storageOptions,
+    TimeProvider timeProvider,
     ILogger<AuthController> logger) : ControllerBase
 {
     private readonly StorageOptions _storageOptions = storageOptions.Value;
@@ -146,6 +147,7 @@ public class AuthController(
         user.Skills = NormalizeSkills(request.Skills);
         user.ThemePreference = request.ThemePreference ?? user.ThemePreference;
         user.AccentColor = request.AccentColor ?? user.AccentColor;
+        user.TryCompleteOnboarding(timeProvider.GetUtcNow());
 
         var result = await userManager.UpdateAsync(user);
 
@@ -367,7 +369,8 @@ public class AuthController(
             [.. roles],
             user.CreatedAt,
             user.AvatarStoragePath is null ? null : user.AvatarUpdatedAt?.ToUnixTimeMilliseconds(),
-            user.AccentColor);
+            user.AccentColor,
+            user.OnboardingCompletedAt is not null);
     }
 
     private static string? Normalize(string? value) =>
