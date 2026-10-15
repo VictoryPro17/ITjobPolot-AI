@@ -26,7 +26,7 @@ public class AvatarService(
     {
         if (content.Length == 0)
         {
-            throw new ValidationFailedException("file", "Bitte wählen Sie ein Bild aus.");
+            throw new ValidationFailedException("file", "Bitte wähle ein Bild aus.");
         }
 
         if (content.Length > MaxSizeInBytes)

@@ -15,11 +15,11 @@ public class CreateJobApplicationRequestValidator : AbstractValidator<CreateJobA
     public CreateJobApplicationRequestValidator()
     {
         RuleFor(x => x.CompanyName)
-            .NotEmpty().WithMessage("Bitte geben Sie den Firmennamen ein.")
+            .NotEmpty().WithMessage("Bitte gib den Firmennamen ein.")
             .MaximumLength(200).WithMessage("Der Firmenname darf höchstens 200 Zeichen lang sein.");
 
         RuleFor(x => x.JobTitle)
-            .NotEmpty().WithMessage("Bitte geben Sie den Jobtitel ein.")
+            .NotEmpty().WithMessage("Bitte gib den Jobtitel ein.")
             .MaximumLength(200).WithMessage("Der Jobtitel darf höchstens 200 Zeichen lang sein.");
 
         RuleFor(x => x.Location)
@@ -30,7 +30,7 @@ public class CreateJobApplicationRequestValidator : AbstractValidator<CreateJobA
 
         RuleFor(x => x.JobPostingUrl)
             .MaximumLength(1000).WithMessage("Der Link darf höchstens 1000 Zeichen lang sein.")
-            .Must(BeAValidUrl).WithMessage("Bitte geben Sie einen gültigen Link an (http oder https).");
+            .Must(BeAValidUrl).WithMessage("Bitte gib einen gültigen Link an (http oder https).");
 
         RuleFor(x => x.JobDescription)
             .MaximumLength(20000).WithMessage("Die Stellenbeschreibung darf höchstens 20.000 Zeichen lang sein.");
@@ -44,7 +44,7 @@ public class CreateJobApplicationRequestValidator : AbstractValidator<CreateJobA
         RuleFor(x => x.ContactEmail)
             .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.")
             .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.ContactEmail))
-            .WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+            .WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
 
         RuleFor(x => x.ContactPhone)
             .MaximumLength(50).WithMessage("Die Telefonnummer darf höchstens 50 Zeichen lang sein.");
@@ -91,11 +91,11 @@ public class UpdateJobApplicationRequestValidator : AbstractValidator<UpdateJobA
         // Die Regeln sind bewusst identisch zum Anlegen: Ein Datensatz darf durch
         // eine Bearbeitung niemals in einen ungueltigen Zustand geraten.
         RuleFor(x => x.CompanyName)
-            .NotEmpty().WithMessage("Bitte geben Sie den Firmennamen ein.")
+            .NotEmpty().WithMessage("Bitte gib den Firmennamen ein.")
             .MaximumLength(200).WithMessage("Der Firmenname darf höchstens 200 Zeichen lang sein.");
 
         RuleFor(x => x.JobTitle)
-            .NotEmpty().WithMessage("Bitte geben Sie den Jobtitel ein.")
+            .NotEmpty().WithMessage("Bitte gib den Jobtitel ein.")
             .MaximumLength(200).WithMessage("Der Jobtitel darf höchstens 200 Zeichen lang sein.");
 
         RuleFor(x => x.Location)
@@ -107,7 +107,7 @@ public class UpdateJobApplicationRequestValidator : AbstractValidator<UpdateJobA
         RuleFor(x => x.JobPostingUrl)
             .MaximumLength(1000).WithMessage("Der Link darf höchstens 1000 Zeichen lang sein.")
             .Must(CreateJobApplicationRequestValidator.BeAValidUrl)
-            .WithMessage("Bitte geben Sie einen gültigen Link an (http oder https).");
+            .WithMessage("Bitte gib einen gültigen Link an (http oder https).");
 
         RuleFor(x => x.JobDescription)
             .MaximumLength(20000).WithMessage("Die Stellenbeschreibung darf höchstens 20.000 Zeichen lang sein.");
@@ -121,7 +121,7 @@ public class UpdateJobApplicationRequestValidator : AbstractValidator<UpdateJobA
         RuleFor(x => x.ContactEmail)
             .MaximumLength(256).WithMessage("Die E-Mail-Adresse darf höchstens 256 Zeichen lang sein.")
             .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.ContactEmail))
-            .WithMessage("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+            .WithMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
 
         RuleFor(x => x.ContactPhone)
             .MaximumLength(50).WithMessage("Die Telefonnummer darf höchstens 50 Zeichen lang sein.");

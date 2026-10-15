@@ -73,7 +73,7 @@ Fehler werden als `application/problem+json` (ProblemDetails) zurückgegeben. Be
 ```json
 {
   "errors": {
-    "CompanyName": ["Bitte geben Sie den Firmennamen ein."],
+    "CompanyName": ["Bitte gib den Firmennamen ein."],
     "AppliedOn": ["Ab dem Status \"Beworben\" wird ein Bewerbungsdatum benötigt."]
   },
   "title": "Die Eingaben sind ungültig.",

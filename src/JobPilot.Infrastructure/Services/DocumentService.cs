@@ -64,7 +64,7 @@ public class DocumentService(
 
         if (content.Length == 0)
         {
-            throw new ValidationFailedException("file", "Bitte wählen Sie eine gültige Datei aus.");
+            throw new ValidationFailedException("file", "Bitte wähle eine gültige Datei aus.");
         }
 
         if (content.Length > _storageOptions.MaxFileSizeInBytes)
