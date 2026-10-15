@@ -4,6 +4,7 @@ using JobPilot.Application.Common;
 using JobPilot.Application.Matching;
 using JobPilot.Domain.Entities;
 using JobPilot.Domain.Enums;
+using JobPilot.Infrastructure.Ai;
 using JobPilot.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
@@ -172,8 +173,9 @@ public class AiService(
                 analysis.RequiredSkills,
                 analysis.MatchedSkills,
                 analysis.MissingSkills,
-                analysis.Recommendations,
-                analysis.SuggestedLearningTopics,
+                // Auch aeltere, vor dem Bereiniger gespeicherte Analysen sauber ausliefern.
+                RecommendationCleaner.Clean(analysis.Recommendations, analysis.RequiredSkills, minItems: 0),
+                RecommendationCleaner.Clean(analysis.SuggestedLearningTopics, analysis.RequiredSkills, minItems: 0, sentences: false),
                 analysis.Provider,
                 analysis.Model,
                 analysis.CreatedAt,

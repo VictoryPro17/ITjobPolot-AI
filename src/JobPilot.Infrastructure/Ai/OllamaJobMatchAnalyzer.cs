@@ -44,9 +44,12 @@ public class OllamaJobMatchAnalyzer(
         "z. B. \"Du bringst C# und Azure mit, dir fehlt noch Kubernetes.\" " +
         "Die Listen ABGEDECKT und FEHLEND sind verbindlich: Bezeichne nichts aus ABGEDECKT als fehlend. " +
         "summary: 2 bis 3 Sätze zur fachlichen Passung. " +
-        "recommendations: höchstens 5 konkrete Schritte. Zu Skills aus FEHLEND schlägst du nur Lernen oder Praxisprojekte vor; " +
+        "recommendations: höchstens 5 konkrete Schritte, jeder zu einem anderen Thema und höchstens 2 pro Skill. " +
+        "Jeder Schritt nennt etwas Greifbares, z. B. ein kleines Projekt, ein Lernziel oder eine Zertifizierung. " +
+        "Zu Skills aus FEHLEND schlägst du nur Lernen oder Praxisprojekte vor; " +
         "rate nie, fehlende Skills in der Bewerbung zu erwähnen oder anzugeben. Keine Soft Skills. " +
-        "learningTopics: höchstens 5 fachliche Lernthemen zu den Lücken. " +
+        "Keine Füllfloskeln wie \"um deine Fähigkeiten zu erweitern\", keine Wortwiederholungen. " +
+        "learningTopics: höchstens 5 kurze fachliche Lernthemen zu den Lücken, ohne Wiederholungen. " +
         "additionalRequirements: fachliche Anforderungen der Stelle, die nicht in ERKANNT stehen, " +
         "wörtlich aus der Stellenbeschreibung, keine Soft Skills. Antworte nur mit JSON nach Schema.";
 
@@ -64,6 +67,11 @@ public class OllamaJobMatchAnalyzer(
     // Fuellwoerter vor der eigentlichen Anforderung ("Erfahrung mit OpenTelemetry" -> "OpenTelemetry").
     private static readonly Regex RequirementPrefix = new(
         @"^(erste\s+)?(erfahrung(en)?|kenntnisse|know-how|experience|knowledge)\s+(mit|in|von|im|with|of)\s+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    // Trennt Aufzaehlungen; "/" bleibt bewusst erhalten (z. B. "CI/CD", "C/C++").
+    private static readonly Regex EnumerationSplit = new(
+        @"\s*(?:,|;|\bund\b|\boder\b|\bsowie\b|\band\b|\bor\b)\s*",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex NegationWord = new(
@@ -121,8 +129,11 @@ public class OllamaJobMatchAnalyzer(
         }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
         // Zusaetzliche Anforderungen nur, wenn sie woertlich in der Stelle stehen und fachlich sind.
+        // Aufzaehlungen wie "Docker, Kubernetes und Azure" in einzelne Begriffe zerlegen.
         var additional = Sanitize(ai.AdditionalRequirements, MaxRequirementLength)
-            .Select(requirement => RequirementPrefix.Replace(requirement, string.Empty).Trim().TrimEnd('.', ','))
+            .Select(requirement => RequirementPrefix.Replace(requirement, string.Empty))
+            .SelectMany(requirement => EnumerationSplit.Split(requirement))
+            .Select(requirement => RequirementPrefix.Replace(requirement.Trim(), string.Empty).Trim().TrimEnd('.', ','))
             .Where(requirement => requirement.Length > 1)
             .Where(requirement => jobDescription.Contains(requirement, StringComparison.OrdinalIgnoreCase))
             .Where(requirement => !IsGeneric(requirement))
@@ -145,11 +156,20 @@ public class OllamaJobMatchAnalyzer(
 
         var summary = Sanitize([ai.Summary], MaxSentenceLength * 2)
             .FirstOrDefault(text => IsSummaryConsistent(text, matchedSkills, input.CandidateName));
-        var recommendations = Sanitize(ai.Recommendations, MaxSentenceLength)
-            .Where(text => IsRecommendationAcceptable(text, missingSkills))
-            .Take(MaxListItems)
-            .ToList();
-        var learningTopics = Sanitize(ai.LearningTopics, MaxSentenceLength).Take(MaxListItems).ToList();
+        // Bereinigen: Floskeln, Wiederholungen, Duplikate, hoechstens zwei Eintraege je Skill.
+        // Bleibt zu wenig uebrig, wird mit den regelbasierten Empfehlungen aufgefuellt.
+        var recommendations = RecommendationCleaner.Clean(
+            Sanitize(ai.Recommendations, MaxSentenceLength).Where(text => IsRecommendationAcceptable(text, missingSkills)),
+            requiredSkills,
+            baseline.Recommendations,
+            MaxListItems);
+        var learningTopics = RecommendationCleaner.Clean(
+            Sanitize(ai.LearningTopics, MaxSentenceLength),
+            requiredSkills,
+            baseline.SuggestedLearningTopics,
+            MaxListItems,
+            minItems: 1,
+            sentences: false);
 
         return baseline with
         {

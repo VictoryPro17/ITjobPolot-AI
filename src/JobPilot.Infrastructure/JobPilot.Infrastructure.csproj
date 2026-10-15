@@ -24,4 +24,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Interne Hilfsklassen (z. B. RecommendationCleaner) direkt testbar machen. -->
+    <InternalsVisibleTo Include="JobPilot.Tests" />
+  </ItemGroup>
+
 </Project>

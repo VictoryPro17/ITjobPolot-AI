@@ -113,6 +113,28 @@ public class OllamaIntegrationTests
         Resume);
 
     [Fact]
+    public async Task Analyzer_SplitsEnumeratedRequirementsIntoSingleSkills()
+    {
+        await using var context = CreateContext();
+        var handler = FakeOllama.Returning(new
+        {
+            summary = "Du passt gut zur Stelle.",
+            recommendations = Array.Empty<string>(),
+            learningTopics = Array.Empty<string>(),
+            // Tatsaechlich beobachtet: die KI liefert eine ganze Aufzaehlung als eine Anforderung.
+            additionalRequirements = new[] { "Kenntnisse in Kubernetes, Terraform und Ansible" }
+        });
+        var input = MatchInput with { JobDescription = "Wir suchen C#. Kenntnisse in Kubernetes, Terraform und Ansible sind von Vorteil." };
+
+        var result = await CreateAnalyzer(context, handler).AnalyzeAsync(input);
+
+        Assert.DoesNotContain(result.RequiredSkills, skill => skill.Contains(',') || skill.Contains(" und "));
+        Assert.Contains("Terraform", result.RequiredSkills, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("Ansible", result.RequiredSkills, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(result.RequiredSkills.Count, result.RequiredSkills.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public async Task Analyzer_KeepsRuleBasedFactorsAndUsesAiTexts()
     {
         await using var context = CreateContext();
@@ -127,7 +149,9 @@ public class OllamaIntegrationTests
         var result = await CreateAnalyzer(context, handler).AnalyzeAsync(MatchInput);
 
         Assert.Equal("Du passt gut zur Stelle.", result.Summary);
-        Assert.Equal(["Hebe dein C#-Projekt hervor."], result.Recommendations);
+        // Die KI-Empfehlung steht vorn; bei weniger als zwei Eintraegen ergaenzt eine regelbasierte.
+        Assert.Equal("Hebe dein C#-Projekt hervor.", result.Recommendations[0]);
+        Assert.Equal(2, result.Recommendations.Count);
         Assert.Equal("ollama", result.Provider);
 
         // OpenTelemetry steht woertlich in der Stelle und im Profil; "teamfähig" ist generisch, "Rust" erfunden.
@@ -180,7 +204,8 @@ public class OllamaIntegrationTests
         var result = await CreateAnalyzer(context, handler).AnalyzeAsync(MatchInput);
 
         Assert.Equal("Du bringst C# mit, dir fehlt noch Kubernetes.", result.Summary);
-        Assert.Equal(["Setze ein kleines Kubernetes-Projekt mit einem Helm-Chart um."], result.Recommendations);
+        Assert.Equal("Setze ein kleines Kubernetes-Projekt mit einem Helm-Chart um.", result.Recommendations[0]);
+        Assert.DoesNotContain(result.Recommendations, text => text.StartsWith("Erwähne") || text.Contains("Kommunikation"));
     }
 
     [Fact]
