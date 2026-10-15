@@ -1,474 +1,193 @@
 <div align="center">
 
-<img src="frontend/public/favicon.svg" width="56" alt="">
+<img src="frontend/public/favicon.svg" width="72" alt="JobPilot AI logo">
 
 # JobPilot AI
 
-Bewerbungsmanager mit Dashboard, Kanban-Board und optionaler lokaler KI-Unterstützung.
+**A job application manager with a dashboard, Kanban board and optional local AI.**
+
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 </div>
 
-<img src="docs/screenshots/dashboard.png" width="100%" alt="Dashboard von JobPilot AI">
+<img src="docs/screenshots/dashboard.png" width="100%" alt="JobPilot AI dashboard with application statistics">
 
-## Inhalt
+## About
 
-- [Überblick](#überblick)
-- [Funktionen](#funktionen)
-- [Architektur](#architektur)
-- [Schnellstart](#schnellstart)
-- [Täglicher Start](#täglicher-start)
-- [Konfiguration](#konfiguration)
-- [Lokale KI mit Ollama](#lokale-ki-mit-ollama)
-- [Tests](#tests)
-- [Fehlerbehebung](#fehlerbehebung)
-- [Sicherheit](#sicherheit)
-- [Projektstruktur](#projektstruktur)
-- [Weitere Dokumentation](#weitere-dokumentation)
-- [Entwicklungsphasen](#entwicklungsphasen)
-- [Lizenz](#lizenz)
+Job hunting quickly turns into a mess of spreadsheets, bookmarks and half-remembered follow-ups. JobPilot AI replaces that with one place to track every application: a dashboard, a Kanban board, a detail page per application with notes, documents and reminders, and statistics on how your search is going.
 
-## Überblick
+Matching a CV against a job posting and drafting cover letters can optionally be assisted by a local language model (Ollama), so your CV never leaves your machine. Without AI the app falls back to a rule-based analysis.
 
-JobPilot AI ist eine Full-Stack-Webanwendung zur Verwaltung, Analyse und Auswertung von Bewerbungen.
-Sie ersetzt Excel-Listen durch ein Dashboard, ein Kanban-Board, eine Detailseite pro Bewerbung und
-Statistiken. Lebenslauf-Auslesen und Match-Analyse können optional von einem lokalen Sprachmodell
-(Ollama) unterstützt werden; ohne KI arbeitet die Anwendung regelbasiert. Das Projekt richtet sich an
-Bewerbende, die ihren Prozess strukturiert verfolgen möchten, und dient zugleich als Portfolio-Projekt
-mit einem ASP.NET-Core-10-Backend in Clean Architecture und einem React-19-Frontend.
+JobPilot AI is a portfolio project: a full-stack application with an ASP.NET Core 10 backend in Clean Architecture and a React 19 + TypeScript frontend.
 
-| Bereich   | Technologien |
-|-----------|--------------|
-| Backend   | .NET 10, ASP.NET Core Web API, Entity Framework Core 10, ASP.NET Core Identity, Serilog |
-| Datenbank | PostgreSQL 17 (Docker) |
-| Frontend  | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, Recharts, Lucide |
-| E-Mail    | MailKit (SMTP), Mailpit für die Entwicklung |
-| Tests     | xUnit, Playwright |
-| Werkzeuge | Visual Studio 2026, Docker Compose, dotnet-ef |
+## Features
 
-## Funktionen
+**Application tracking and Kanban board**
+- Create, filter, search and page through applications
+- Kanban board with one column per status; move cards by drag and drop or via the status on the card, with paged loading per column and compact or detailed cards
+- Dashboard and statistics: application rate, interview and offer rates, average response time, funnel, weekly activity, monthly trend and status distribution
 
-### Bewerbungen verwalten
+**Application details, timeline, reminders and documents**
+- Detail page per application with key data, notes timeline and status history
+- Reminders per application
+- Document uploads (PDF, DOCX, TXT, MD, PNG, JPG) with a per-user quota
 
-Bewerbungen lassen sich anlegen, filtern, durchsuchen und seitenweise durchblättern. Die Detailseite
-bündelt pro Bewerbung Eckdaten, eine Zeitleiste mit Notizen, den Statusverlauf, Dokumente und
-Erinnerungen.
+**Local AI (optional)**
+- Job match analysis: score, matching and missing skills, and recommendations. The score is always computed by a transparent rule-based formula; the AI only adds wording and extra requirements
+- Cover letter drafts built from a template with details from the job and your profile
+- CV profile extraction from PDF, DOCX, TXT or MD; the result is a suggestion you review before saving
+- Automatic fallback to rule-based results when Ollama is unavailable, slow or returns invalid output
+
+**Onboarding**
+- After sign-up a welcome page fills your profile from an uploaded CV or lets you enter it by hand; a desired position and at least one skill are required
+
+**Accounts and privacy**
+- Registration with mandatory email confirmation, resend option and password reset by email link
+- Export all of your data as JSON and permanently delete your account, including all uploaded files
+
+**Themes**
+- Light, dark and system mode, plus blue, green and purple accent colors, stored in your account
+- Responsive layout for phone-width screens
+
+## Screenshots
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/bewerbungen.png" width="100%" alt="Liste der Bewerbungen mit Filtern"><br><sub>Liste mit Filtern und Suche</sub></td>
-    <td width="50%"><img src="docs/screenshots/detail.png" width="100%" alt="Detailseite einer Bewerbung"><br><sub>Detailseite einer Bewerbung</sub></td>
+    <td width="50%"><img src="docs/screenshots/kanban.png" width="100%" alt="Kanban board with status columns"><br><sub>Kanban board</sub></td>
+    <td width="50%"><img src="docs/screenshots/bewerbungen.png" width="100%" alt="Application list with filters and search"><br><sub>Application list with filters and search</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/detail-aktivitaet.png" width="100%" alt="Aktivität mit Notizen-Zeitleiste und Erinnerungen"><br><sub>Aktivität: Notizen-Zeitleiste, Statusverlauf, Erinnerungen</sub></td>
-    <td width="50%"><img src="docs/screenshots/detail-dunkel.png" width="100%" alt="Detailseite im dunklen Modus"><br><sub>Detailseite im dunklen Modus</sub></td>
+    <td width="50%"><img src="docs/screenshots/detail-aktivitaet.png" width="100%" alt="Application detail with notes timeline, status history and reminders"><br><sub>Notes timeline, status history and reminders</sub></td>
+    <td width="50%"><img src="docs/screenshots/detail-ki.png" width="100%" alt="Job match analysis with score, skills and recommendations"><br><sub>Job match analysis</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/statistiken.png" width="100%" alt="Statistics page with key figures and charts"><br><sub>Statistics</sub></td>
+    <td width="50%"><img src="docs/screenshots/willkommen.png" width="100%" alt="Welcome page with the options to upload a CV or fill in the profile manually"><br><sub>Onboarding</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard-dunkel.png" width="100%" alt="Dashboard in dark mode"><br><sub>Dark mode</sub></td>
+    <td width="50%"><img src="docs/screenshots/dashboard-purple.png" width="100%" alt="Dashboard with the purple accent color"><br><sub>Purple accent color</sub></td>
   </tr>
 </table>
-
-### Pflicht-Einstieg nach der Registrierung
-
-Nach der Registrierung und der E-Mail-Bestätigung (siehe nächster Abschnitt) führt JobPilot auf die
-Willkommensseite (`/willkommen`). Dort wird das Profil
-entweder aus einem hochgeladenen Lebenslauf vorausgefüllt oder von Hand ausgefüllt. Pflicht sind eine
-Wunschposition und mindestens ein Skill. Bis dahin leitet jede geschützte Seite zur Willkommensseite um;
-der Abschluss wird serverseitig beim Speichern des Profils entschieden. Bestehende Konten gelten als
-abgeschlossen.
-
-<img src="docs/screenshots/willkommen.png" width="70%" alt="Willkommensseite mit den Optionen Lebenslauf hochladen und Selbst ausfüllen">
-
-### Konto, E-Mail-Bestätigung und Passwort zurücksetzen
-
-Nach der Registrierung verschickt JobPilot automatisch eine Bestätigungsmail. Die Bestätigung ist **Pflicht**:
-Bis die Adresse bestätigt ist, zeigt die Anwendung nur die Seite „Bitte bestätige deine E-Mail-Adresse“
-(`/bestaetigung-ausstehend`) mit den Schaltflächen „Ich habe bestätigt“, „Erneut senden“ und „Abmelden“.
-Der Server erzwingt die Regel selbst: Geschützte Endpunkte antworten ohne Bestätigung mit `403`. Die Anmeldung
-bleibt möglich, damit sich eine neue Mail anfordern lässt. Erst danach folgt der Pflicht-Einstieg
-(`/willkommen`). Wer das Passwort
-vergessen hat, fordert über „Passwort vergessen?“ auf der Anmeldeseite einen Link an, der 2 Stunden gültig ist
-und nur einmal funktioniert. Die Registrierung zeigt die Passwortregeln live als Checkliste. In der Entwicklung
-landen alle E-Mails in Mailpit (http://localhost:8025).
-
-<img src="docs/screenshots/bestaetigung-ausstehend.png" width="100%" alt="Seite Bitte bestätige deine E-Mail-Adresse mit den Schaltflächen Ich habe bestätigt und Erneut senden">
-
-<img src="docs/screenshots/anmeldung.png" width="100%" alt="Anmeldeseite mit Link Passwort vergessen">
-
-### Kanban-Board
-
-Das Board zeigt die Bewerbungen nach Status in Spalten. Karten lassen sich per Drag and Drop zwischen
-den Spalten verschieben oder über den Status auf der Karte ändern. Jede Spalte lädt ihre Einträge
-seitenweise nach; die Karten gibt es in einer kompakten und einer detaillierten Ansicht.
-
-<img src="docs/screenshots/kanban.png" width="100%" alt="Kanban-Board mit Statusspalten">
-
-### KI-Analyse und Anschreiben
-
-Die Match-Analyse vergleicht Profil und Stellenbeschreibung und liefert Score, passende und fehlende
-Skills sowie Empfehlungen. Ein lokales Ollama-Modell ist optional, ohne KI greift eine regelbasierte
-Analyse. Der Score wird in jedem Fall regelbasiert berechnet (siehe [Lokale KI mit Ollama](#lokale-ki-mit-ollama)).
-Anschreiben werden aus einer Vorlage mit Angaben aus Stelle und Profil erstellt und sind als Entwurf
-zum Überarbeiten gedacht.
-
-<img src="docs/screenshots/detail-ki.png" width="100%" alt="Match-Analyse mit Score, Skills und Empfehlungen">
-
-### Statistiken
-
-Auswertungen zu Bewerbungsquote, Gesprächs- und Zusagequote, durchschnittlicher Antwortzeit,
-Bewerbungstrichter, Wochenaktivität, Monatsverlauf und Statusverteilung.
-
-<img src="docs/screenshots/statistiken.png" width="100%" alt="Statistikseite mit Kennzahlen und Diagrammen">
-
-### Darstellung
-
-Die Oberfläche unterstützt die Modi Hell, Dunkel und System sowie die Akzentfarben Blau, Grün und
-Lila. Die Auswahl wird im Benutzerkonto gespeichert und gilt damit auch auf anderen Geräten.
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/dashboard-dunkel.png" width="100%" alt="Dashboard im dunklen Modus"><br><sub>Dunkler Modus</sub></td>
-    <td width="50%"><img src="docs/screenshots/einstellungen-darstellung.png" width="100%" alt="Einstellungen zur Darstellung"><br><sub>Einstellungen: Modus und Akzentfarbe</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/dashboard-purple.png" width="100%" alt="Dashboard mit Akzentfarbe Lila"><br><sub>Akzentfarbe Lila</sub></td>
-    <td width="50%"><img src="docs/screenshots/dashboard-green.png" width="100%" alt="Dashboard mit Akzentfarbe Grün"><br><sub>Akzentfarbe Grün</sub></td>
-  </tr>
-</table>
-
-### Mobil
-
-Die Oberfläche ist für schmale Bildschirme ausgelegt.
 
 <p align="center">
-  <img src="docs/screenshots/mobil-dashboard.png" width="280" alt="Dashboard in Handybreite">
+  <img src="docs/screenshots/mobil-dashboard.png" width="240" alt="Dashboard at phone width">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/mobil-kanban.png" width="280" alt="Kanban-Board in Handybreite">
+  <img src="docs/screenshots/mobil-kanban.png" width="240" alt="Kanban board at phone width">
 </p>
 
-### Datenschutz
+<p align="center"><sub>The UI is in German. Mobile layout shown above.</sub></p>
 
-Alle Daten eines Benutzers lassen sich als JSON exportieren (Auskunft und Datenübertragbarkeit nach
-Art. 15 und 20 DSGVO). Das Konto kann endgültig gelöscht werden, einschließlich aller hochgeladenen
-Dateien.
+## Tech stack
 
-## Architektur
+| Area | Technologies |
+|------|--------------|
+| Backend | .NET 10, ASP.NET Core Web API, Entity Framework Core 10, ASP.NET Core Identity, Serilog |
+| Database | PostgreSQL 17 (Docker) |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, Recharts, Lucide |
+| Email | MailKit (SMTP), Mailpit for development |
+| AI | Ollama (local, default model `qwen2.5:3b`), optional |
+| Testing | xUnit, Playwright, axe-core, ESLint |
+| Tooling | Docker Compose, dotnet-ef |
 
-Kurzüberblick; Datenmodell, Anfrage-Pipeline, KI-Ablauf und Frontend-Aufbau beschreibt
-[docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) ausführlich.
+## Architecture
+
+The backend follows a light Clean Architecture: `Domain` -> `Application` -> `Infrastructure` -> `Api`, with dependencies pointing inward only. There is no repository layer on top of EF Core, because the `DbContext` already is a unit of work and repository. The frontend is a first-party SPA that talks to the API through a Vite proxy, so both share one origin and cookie authentication works without special SameSite rules.
 
 ```mermaid
 flowchart LR
-    Browser["Browser<br/>React + Vite"] -->|"/api (Vite-Proxy)"| Api["ASP.NET Core API"]
+    Browser["Browser<br/>React + Vite"] -->|"/api (Vite proxy)"| Api["ASP.NET Core API"]
     Api --> App["Application"]
     App --> Infra["Infrastructure"]
     Infra --> DB[("PostgreSQL")]
-    Infra -.->|optional| Ollama["Ollama (lokale KI)"]
-    Infra --> Files["Lokale Dateiablage"]
+    Infra -.->|optional| Ollama["Ollama (local AI)"]
+    Infra --> Files["Local file storage"]
 ```
 
-| Projekt                     | Aufgabe |
-|-----------------------------|---------|
-| `src/JobPilot.Domain`         | Entitäten, Enums, Domänenregeln (keine Abhängigkeiten) |
-| `src/JobPilot.Application`    | Abstraktionen, Optionen, Anwendungslogik |
-| `src/JobPilot.Infrastructure` | EF Core, PostgreSQL, Migrations, Seeding |
-| `src/JobPilot.Api`            | Controller, Identity, OpenAPI, Serilog, DI-Komposition |
-| `tests/JobPilot.Tests`        | xUnit-Tests |
-| `frontend`                    | React + TypeScript + Vite |
+Details on the data model, request pipeline, AI flow and frontend structure are in [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) (German).
 
-Architekturentscheidungen:
+## Security and privacy
 
-* **Clean Architecture light**: `Domain` -> `Application` -> `Infrastructure` -> `Api`.
-  Die Abhängigkeiten zeigen ausschließlich nach innen.
-* **Kein Repository-Pattern** über EF Core. Der `DbContext` ist bereits Unit of Work und Repository.
-* **Mandantentrennung**: Jede nutzerbezogene Entität erbt von `OwnedEntityBase` und besitzt eine
-  `UserId`. Die ID stammt immer aus den validierten Claims (`ICurrentUser`), niemals aus dem Request-Body.
-* **Cookie-Authentifizierung** statt JWT: Das Frontend ist eine First-Party-SPA. Ein `HttpOnly`-Cookie
-  ist dort sicherer, weil es für JavaScript nicht lesbar ist. Unauthentifizierte Anfragen erhalten
-  401/403 statt eines Redirects auf eine Login-Seite.
-* **KI ist optional**: `Ai:Enabled` (Standard `false`) schaltet externe KI-Anbieter frei. Match-Analyse
-  und Anschreiben laufen ohne KI regelbasiert. Das MVP läuft vollständig ohne externen KI-Anbieter.
-* **Lebensläufe** können als PDF, DOCX, TXT oder MD hochgeladen werden. Der Upload liefert einen
-  Profilvorschlag, der erst nach Prüfung über „Profil speichern“ übernommen wird.
+- **Per-user data isolation**: every user-owned entity carries a `UserId` taken from the validated claims, never from the request body, and all queries filter by it
+- **Cookie authentication** with `HttpOnly`, `Secure` and `SameSite` cookies, and security stamp validation
+- **Mandatory email confirmation**, enforced on the server: protected endpoints answer `403` until the address is confirmed
+- **Lockout and password policy**: at least 10 characters, account lockout for 15 minutes after five failed attempts
+- **Rate limiting** per IP, with a stricter limit for sign-in, registration, password reset and email confirmation
+- **Password reset without account enumeration**: the forgot-password endpoint always answers `204`, and one-time tokens become invalid when the security stamp changes
+- **Safe uploads**: size limit, file signature check against the extension, SHA-256 duplicate detection, per-user quota and path traversal protection
+- **Restrictive CORS** and a central error middleware that does not leak internal details
+- **No secrets in the repository**: API keys and SMTP credentials go into user secrets or environment variables
+- **AI runs locally**: with Ollama, CVs and job postings never leave your machine
+- **GDPR-style data rights**: JSON export and permanent account deletion
 
-## Schnellstart
+## Testing
 
-### Voraussetzungen
-
-* [.NET SDK 10.0](https://dotnet.microsoft.com/download) (getestet mit 10.0.401)
-* [Node.js 20+](https://nodejs.org) (getestet mit 23.3.0)
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) für PostgreSQL
-* EF-Core-Werkzeug: `dotnet tool update --global dotnet-ef --version 10.0.*`
-
-### 1. Datenbank starten
+- **Backend**: 170 xUnit tests in `tests/JobPilot.Tests`
+- **End-to-end**: Playwright tests in `frontend/e2e/` run in Chromium for desktop light, desktop dark and mobile width. Every test creates and removes its own account and reads confirmation links from real emails via Mailpit
+- **Accessibility and visual checks**: `e2e/visual.spec.ts` captures screenshots of the main pages and runs an axe accessibility audit; serious and critical findings fail the run
+- **Static analysis**: ESLint with the React Hooks rules (`npm run lint`)
 
 ```bash
+dotnet test tests/JobPilot.Tests
+cd frontend && npm run lint
+```
+
+How to run the Playwright suite is described in [docs/SETUP.md](docs/SETUP.md#running-the-tests).
+
+## Getting started
+
+**Prerequisites:** [.NET SDK 10](https://dotnet.microsoft.com/download), [Node.js 20+](https://nodejs.org), [Docker Desktop](https://www.docker.com/products/docker-desktop/), and the EF Core tool (`dotnet tool update --global dotnet-ef --version 10.0.*`).
+
+```bash
+# 1. PostgreSQL and Mailpit (test mail server, inbox at http://localhost:8025)
 docker compose up -d
-```
 
-Startet PostgreSQL 17 auf Port `5432` mit Datenbank, Benutzer und Passwort `jobpilot` /
-`jobpilot` / `jobpilot_dev`. Diese Zugangsdaten gelten **ausschließlich** für die lokale Entwicklung.
-
-Zusätzlich startet der Befehl Mailpit, einen Test-Mailserver für die Entwicklung (SMTP auf Port `1025`,
-nur lokal erreichbar). Er fängt alle E-Mails ab, die JobPilot verschickt (Bestätigung der E-Mail-Adresse,
-Passwort zurücksetzen); nichts verlässt den Rechner. Den Posteingang siehst du im Browser unter
-**http://localhost:8025**.
-
-### 2. Datenbankschema anlegen
-
-```bash
-dotnet ef database update --project src/JobPilot.Infrastructure --startup-project src/JobPilot.Api
-```
-
-Alternativ genügt der Start der API: sie wendet ausstehende Migrationen automatisch an und legt
-die Standardrollen an.
-
-### 3. API starten
-
-```bash
+# 2. API on http://localhost:5042 (applies database migrations on startup)
 dotnet run --project src/JobPilot.Api
-```
 
-| Adresse | Zweck |
-|---------|-------|
-| `http://localhost:5042/api/health` | Erreichbarkeit der API |
-| `http://localhost:5042/api/health/database` | Erreichbarkeit der Datenbank |
-| `http://localhost:5042/openapi/v1.json` | OpenAPI-Dokument (nur Development) |
-
-### 4. Frontend starten
-
-```bash
+# 3. Frontend on http://localhost:5173 (in a second terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-Die Oberfläche läuft auf `http://localhost:5173`. Der Vite-Dev-Proxy leitet alle Anfragen an
-`/api` an die ASP.NET Core API weiter. Dadurch teilen sich Frontend und API im Browser dieselbe
-Origin, was die Cookie-Authentifizierung ohne SameSite-Sonderregeln ermöglicht.
+Open **http://localhost:5173**, register, and confirm your email in Mailpit.
 
-## Täglicher Start
+**Optional local AI:** install [Ollama](https://ollama.com), then run `ollama pull qwen2.5:3b` and `ollama serve`. The Development configuration already points to it.
 
-Nach der einmaligen Einrichtung genügen drei Schritte, jeweils in einem eigenen Terminal:
+Configuration keys, the daily start routine, testing and troubleshooting are covered in [docs/SETUP.md](docs/SETUP.md).
 
-| Schritt | PowerShell (Windows) | Bash |
-|---------|----------------------|------|
-| 1. Datenbank und Mailpit | `docker compose up -d` | `docker compose up -d` |
-| 2. API | `dotnet run --project src/JobPilot.Api` | `dotnet run --project src/JobPilot.Api` |
-| 3. Web-App | `cd frontend; npm run dev` | `cd frontend && npm run dev` |
-| 4. KI (optional) | `ollama serve` | `ollama serve` |
+## Documentation
 
-Danach ist die Anwendung unter **http://localhost:5173** erreichbar, die API unter
-**http://localhost:5042**. E-Mails (Bestätigung, Passwort zurücksetzen) erscheinen in Mailpit unter **http://localhost:8025**. Die API wendet ausstehende Migrationen beim Start automatisch an. Läuft Ollama
-bereits (z. B. als Hintergrunddienst), meldet `ollama serve`, dass die Adresse belegt ist; das ist in Ordnung.
+| Document | Content |
+|----------|---------|
+| [docs/SETUP.md](docs/SETUP.md) | Full setup, configuration, local AI, tests and troubleshooting |
+| [docs/BENUTZERHANDBUCH.md](docs/BENUTZERHANDBUCH.md) (German) | User guide with screenshots |
+| [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) (German) | Layers, data model, security, AI flow, frontend and test strategy |
+| [docs/API.md](docs/API.md) (German) | All endpoints, error format, rate limits and an example flow with curl |
 
-## Konfiguration
-
-Die Konfiguration erfolgt über `src/JobPilot.Api/appsettings.json`. Werte lassen sich per
-Umgebungsvariable überschreiben (`__` trennt die Ebenen).
-
-| Schlüssel | Umgebungsvariable | Standard | Bedeutung |
-|-------------|-------------------|----------|-----------|
-| `ConnectionStrings:Default` | `ConnectionStrings__Default` | lokale Docker-Datenbank | PostgreSQL-Verbindung |
-| `App:CorsOrigins` | `App__CorsOrigins__0` | `http://localhost:5173` | Erlaubte Frontend-Origins |
-| `App:FrontendBaseUrl` | `App__FrontendBaseUrl` | `http://localhost:5173` | Basisadresse der Oberfläche; daraus entstehen die Links in E-Mails |
-| `Email:Enabled` | `Email__Enabled` | `false` | `true` versendet über SMTP; `false` verschickt nichts, in Development steht der Mailtext (mit Link) im API-Log. Development setzt `true` für Mailpit. |
-| `Email:Host` | `Email__Host` | `localhost` | SMTP-Server |
-| `Email:Port` | `Email__Port` | `587` | SMTP-Port (Development: `1025` für Mailpit) |
-| `Email:UseStartTls` | `Email__UseStartTls` | `true` | STARTTLS verwenden (Development: `false` für Mailpit) |
-| `Email:Username` | `Email__Username` | leer | SMTP-Benutzer; **nur über User Secrets oder Umgebungsvariablen setzen** |
-| `Email:Password` | `Email__Password` | leer | SMTP-Passwort; **nur über User Secrets oder Umgebungsvariablen setzen** |
-| `Email:FromAddress` | `Email__FromAddress` | `no-reply@jobpilot.local` | Absenderadresse |
-| `Email:FromName` | `Email__FromName` | `JobPilot` | Absendername |
-| `Storage:UploadRoot` | `Storage__UploadRoot` | `uploads` | Ablage für Benutzerdokumente |
-| `Storage:MaxFileSizeInBytes` | `Storage__MaxFileSizeInBytes` | `10485760` | Maximale Dateigröße (10 MB) |
-| `Storage:MaxDocumentsPerUser` | `Storage__MaxDocumentsPerUser` | `100` | Maximale Anzahl Dokumente pro Benutzer |
-| `Ai:Enabled` | `Ai__Enabled` | `false` | Schaltet externe KI-Anbieter frei. Match-Analyse und Anschreiben laufen ohne KI regelbasiert. |
-| `Ai:Provider` | `Ai__Provider` | `openai` | KI-Anbieter; umgesetzt ist `ollama` (lokal) |
-| `Ai:Model` | `Ai__Model` | `gpt-4o-mini` | Modellname; für Ollama z. B. `qwen2.5:3b` |
-| `Ai:BaseUrl` | `Ai__BaseUrl` | `http://localhost:11434` | Adresse des KI-Anbieters |
-| `Ai:TimeoutSeconds` | `Ai__TimeoutSeconds` | `120` | Danach greift die regelbasierte Analyse |
-| `Ai:ApiKey` | `Ai__ApiKey` | leer | **Nur über User Secrets setzen** |
-| `Ai:DailyRequestLimitPerUser` | `Ai__DailyRequestLimitPerUser` | `25` | Kostenbremse pro Benutzer und Tag |
-| `RateLimiting:GlobalPermitLimit` | `RateLimiting__GlobalPermitLimit` | `120` | Anfragen pro IP und Minute |
-| `RateLimiting:AuthPermitLimit` | `RateLimiting__AuthPermitLimit` | `10` | Anmeldungen, Registrierungen und Anfragen rund um Passwort und E-Mail-Bestätigung pro IP und Minute |
-
-### Secrets niemals committen
-
-API-Schlüssel gehören ausschließlich in die User Secrets:
-
-```bash
-dotnet user-secrets set "Ai:ApiKey" "<ihr-schluessel>" --project src/JobPilot.Api
-```
-
-SMTP-Zugangsdaten für einen echten Mailserver ebenso:
-
-```bash
-dotnet user-secrets set "Email:Username" "<benutzer>" --project src/JobPilot.Api
-dotnet user-secrets set "Email:Password" "<passwort>" --project src/JobPilot.Api
-```
-
-Frontend-Variablen für Vite:
-
-```bash
-# frontend/.env.local (optional)
-VITE_API_PROXY_TARGET=http://localhost:5042
-```
-
-## Lokale KI mit Ollama
-
-Lebenslauf-Auslesen und Match-Analyse können ein lokales Sprachmodell nutzen. Das ist kostenlos,
-und Lebensläufe verlassen den eigenen Rechner nicht.
-
-```bash
-winget install --id Ollama.Ollama -e
-ollama pull qwen2.5:3b
-```
-
-In `appsettings.Development.json` ist die lokale KI bereits aktiviert (`Enabled: true`,
-`Provider: ollama`, `Model: qwen2.5:3b`, `BaseUrl: http://127.0.0.1:11434`). In Produktion bleibt sie
-standardmäßig aus.
-
-* **Score bleibt regelbasiert**: Die KI formuliert Zusammenfassung, Empfehlungen und Lernthemen und
-  findet weitere Anforderungen. Der Score wird immer mit derselben nachvollziehbaren Formel berechnet.
-* **Abgesichert**: Skills und Anforderungen werden nur übernommen, wenn sie wörtlich im Lebenslauf bzw.
-  in der Stellenbeschreibung stehen. Zusammenfassungen, die Abgedecktes als fehlend darstellen, und
-  Empfehlungen, fehlende Skills anzugeben, werden verworfen.
-* **Bereinigte Empfehlungen**: Empfehlungen und Lernthemen werden von Füllfloskeln und Wortwiederholungen
-  befreit, Fast-Duplikate entfallen, je Skill bleiben höchstens zwei Einträge; bei Bedarf wird mit
-  regelbasierten Empfehlungen aufgefüllt. Aufzählungen wie „Docker, Kubernetes und Azure“ werden in
-  einzelne Skills zerlegt.
-* **Automatischer Rückfall**: Ist Ollama nicht erreichbar, zu langsam, liefert ungültiges JSON oder ist das
-  Tageslimit erreicht, wird regelbasiert gearbeitet. `GET /api/ai/status` zeigt den aktuellen Zustand.
-* **Dauer** (RTX 3050 Ti, 4 GB): CV etwa 10–13 s, Analyse etwa 5 s. Der allererste Aufruf nach dem
-  Start lädt das Modell und dauert deutlich länger.
-
-## Tests
-
-### Build, Backend und Frontend
-
-```bash
-dotnet build "ITjobPolot AI.slnx"
-dotnet test tests/JobPilot.Tests
-cd frontend && npm run build
-```
-
-### Browser-Tests (Playwright)
-
-Die Tests in `frontend/e2e/` laufen gegen die lokale Umgebung in Chromium – Desktop hell, Desktop dunkel
-und Handybreite. Jeder Test legt ein eigenes Konto an und löscht es am Ende wieder. Die Tests lesen Bestätigungs- und Reset-Links aus echten E-Mails; **Mailpit muss deshalb laufen** (`docker compose up -d`, Standardadresse `http://127.0.0.1:8025`, änderbar über die Umgebungsvariable `E2E_MAILPIT_URL`). Ohne Mailpit bricht das Setup mit einer Fehlermeldung ab.
-
-```bash
-# einmalig
-cd frontend && npx playwright install chromium
-
-# API mit erhöhten Limits starten (sonst greift der Missbrauchsschutz)
-RateLimiting__GlobalPermitLimit=100000 RateLimiting__AuthPermitLimit=1000 \
-  dotnet run --project src/JobPilot.Api --urls http://localhost:5042
-
-# Tests (Vite startet bei Bedarf automatisch)
-cd frontend && npm run e2e        # alle Projekte
-npm run e2e -- --project=mobile   # nur Handybreite
-npm run e2e:ui                    # interaktiver Modus
-```
-
-In PowerShell werden die Umgebungsvariablen vorher gesetzt:
-
-```powershell
-$env:RateLimiting__GlobalPermitLimit = "100000"; $env:RateLimiting__AuthPermitLimit = "1000"
-dotnet run --project src/JobPilot.Api
-```
-
-`e2e/visual.spec.ts` legt Screenshots der Hauptseiten und einen Barrierefreiheitsbericht (axe) in
-`frontend/e2e-artifacts/` ab. Schwere und kritische Befunde lassen den Lauf scheitern.
-
-### Screenshots der Dokumentation
-
-```bash
-cd frontend && npm run docs:screenshots
-```
-
-Das Skript erzeugt die Bilder in `docs/screenshots/` neu und verwendet dafür fiktive Demodaten. Wie bei
-den Browser-Tests muss die API mit erhöhten Rate-Limits laufen (siehe oben).
-Läuft bereits eine API mit normalen Limits, kann das Skript auch gegen eine zweite Instanz laufen,
-z. B. API auf Port 5043 und Vite auf Port 5174 (`VITE_API_PROXY_TARGET=http://localhost:5043`); dann
-`E2E_BASE_URL=http://localhost:5174` und `E2E_API_URL=http://localhost:5043` setzen.
-
-## Fehlerbehebung
-
-| Symptom | Ursache | Lösung |
-|---------|---------|--------|
-| API startet nicht: *address already in use* (Port 5042) | Eine API-Instanz läuft bereits | Andere Instanz beenden oder diese weiterverwenden |
-| Fehler beim Binden an Port 5099 o. ä. | Windows reserviert Portbereiche (`netsh interface ipv4 show excludedportrange protocol=tcp`) | Port außerhalb der Reservierung wählen; die API nutzt standardmäßig 5042 |
-| Vite meldet *Port 5173 is in use* | Web-App läuft bereits | Vorhandene Instanz im Browser öffnen |
-| *Die Datenbank ist nicht erreichbar* / `/api/health/database` schlägt fehl | Docker Desktop oder der Container läuft nicht | Docker starten, `docker compose up -d`, mit `docker ps` prüfen |
-| Browser-Tests scheitern mit **429 Too Many Requests** | Rate-Limits der API greifen | API mit erhöhten `RateLimiting__*`-Werten starten (siehe [Browser-Tests](#browser-tests-playwright)) |
-| Keine E-Mails kommen an (Bestätigung, Passwort zurücksetzen) | Mailpit läuft nicht, oder `Email:Enabled` ist `false` | `docker compose up -d` und Posteingang unter http://localhost:8025 prüfen. Bei `Email:Enabled=false` wird nichts versendet; in Development steht der Link im Text der Log-Ausgabe der API. |
-| Browser-Tests: Mailpit nicht erreichbar, obwohl der Container läuft | `localhost` wird teils zu IPv6 aufgelöst, Mailpit lauscht nur auf IPv4 | Standardmäßig wird `127.0.0.1` verwendet; bei abweichender Adresse `E2E_MAILPIT_URL` setzen (z. B. `http://127.0.0.1:8025`) |
-| Playwright: *Executable doesn't exist* | Browser nicht installiert | `npx playwright install chromium` im Ordner `frontend` |
-| KI-Assistent zeigt „KI nicht erreichbar – regelbasiert“ | Ollama läuft nicht oder Modell fehlt | `ollama serve` und `ollama pull qwen2.5:3b`; Zustand unter `GET /api/ai/status` |
-| Erste KI-Analyse dauert sehr lange | Das Modell wird beim ersten Aufruf geladen | Einmal abwarten; folgende Aufrufe sind deutlich schneller |
-
-## Sicherheit
-
-* ASP.NET Core Identity mit Passwortrichtlinie (mindestens 10 Zeichen) und Kontosperre nach
-  fünf Fehlversuchen für 15 Minuten.
-* `HttpOnly`-, `Secure`- und `SameSite`-Cookies.
-* Pflicht zur E-Mail-Bestätigung, serverseitig erzwungen: Die Standard-Autorisierung verlangt den Claim
-  `jobpilot:email_confirmed` mit dem Wert `true`. Ohne Bestätigung antworten alle geschützten Endpunkte mit
-  `403` („E-Mail-Adresse noch nicht bestätigt.“). Ausnahmen sind nur `GET /api/auth/me`,
-  `POST /api/auth/logout`, `POST /api/auth/resend-confirmation`, `GET /api/auth/export` und
-  `DELETE /api/auth/account` sowie die öffentlichen Endpunkte (Registrierung, Anmeldung, Passwort
-  zurücksetzen, E-Mail-Bestätigung, Health). Bestehende Konten wurden per Migration als bestätigt markiert.
-* Serverseitige Autorisierung; alle Abfragen filtern zwingend nach der `UserId` aus den Claims.
-* Rate Limiting pro IP: 120 Anfragen pro Minute, für Anmeldung, Registrierung sowie Passwort-Zurücksetzen und
-  E-Mail-Bestätigung 10 pro Minute (über `RateLimiting:*` konfigurierbar).
-* Passwort zurücksetzen ohne Kontoabfrage: `POST /api/auth/forgot-password` antwortet immer mit 204, egal ob die
-  Adresse existiert. Die E-Mail wird über eine Warteschlange im Hintergrund versendet, sodass auch die
-  Antwortzeit nichts verrät. Die Links enthalten Einmal-Tokens (Reset 2 Stunden, E-Mail-Bestätigung 3 Tage), die
-  mit dem Sicherheitsstempel des Kontos ungültig werden, etwa nach einer Passwortänderung.
-* SMTP-Zugangsdaten gehören in User Secrets oder Umgebungsvariablen; ohne SMTP-Konfiguration schreibt die API
-  außerhalb von Development keine Links ins Log.
-* Restriktive CORS-Konfiguration auf konfigurierte Origins.
-* Zentrale Fehler-Middleware, die keine internen Details nach außen gibt.
-* Dateiuploads (PDF, DOCX, TXT, MD, PNG, JPG) mit Größenbegrenzung, Prüfung der Dateisignatur
-  gegen die Endung, Dublettenerkennung per SHA-256, Kontingent pro Benutzer und Schutz gegen
-  Pfadmanipulation. Der Content-Type wird serverseitig aus der Endung bestimmt.
-* Datenexport (JSON) und endgültige Kontolöschung inklusive aller Dateien (DSGVO).
-
-## Projektstruktur
+## Project structure
 
 ```
 /
   src/
-    JobPilot.Domain/          Entitäten, Enums, Domänenregeln (keine Abhängigkeiten)
-    JobPilot.Application/     Abstraktionen, Optionen, Anwendungslogik
-    JobPilot.Infrastructure/  EF Core, PostgreSQL, Migrations, Seeding
-    JobPilot.Api/             Controller, Identity, OpenAPI, Serilog, DI-Komposition
+    JobPilot.Domain/          Entities, enums, domain rules (no dependencies)
+    JobPilot.Application/     Abstractions, options, application logic
+    JobPilot.Infrastructure/  EF Core, PostgreSQL, migrations, seeding
+    JobPilot.Api/             Controllers, Identity, OpenAPI, Serilog, DI composition
   tests/
-    JobPilot.Tests/           xUnit-Tests
+    JobPilot.Tests/           xUnit tests
   frontend/                   React + TypeScript + Vite
-    e2e/                      Playwright-Tests und Skript für Dokumentations-Screenshots
-  docs/                       Benutzerhandbuch, API-Referenz, Architektur
-    screenshots/              Screenshots (erzeugt mit npm run docs:screenshots)
+    e2e/                      Playwright tests and documentation screenshot script
+  docs/                       Setup guide, user guide, API reference, architecture
+    screenshots/              Screenshots (generated with npm run docs:screenshots)
   docker-compose.yml          PostgreSQL 17, Mailpit
 ```
 
-## Weitere Dokumentation
+## License
 
-| Dokument | Inhalt |
-|----------|--------|
-| [docs/BENUTZERHANDBUCH.md](docs/BENUTZERHANDBUCH.md) | Bedienung der Anwendung Schritt für Schritt, mit Screenshots |
-| [docs/API.md](docs/API.md) | Alle Endpunkte, Fehlerformat, Rate-Limits und ein Beispielablauf mit curl |
-| [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md) | Schichten, Datenmodell, Sicherheit, KI-Ablauf, Frontend und Teststrategie |
-
-## Entwicklungsphasen
-
-| Phase | Inhalt | Status |
-|-------|--------|--------|
-| 1 | Projektgrundlage, Datenbank, API-Gerüst, Frontend-Gerüst | abgeschlossen |
-| 2 | Bewerbungsverwaltung (CRUD, Liste, Formular, Filter, Suche, Paging) | abgeschlossen |
-| 3 | Dashboard, Benutzerverwaltung, Kanban-Board, Basisstatistiken | abgeschlossen |
-| 4 | KI-Stellenanalyse und KI-Anschreiben | abgeschlossen (regelbasiert, optional lokale KI über Ollama) |
-| 5 | Dokumente, Erinnerungen, erweiterte Statistiken, Einstellungen | abgeschlossen |
-| 6 | Tests, Security-Review, Performance, Docker, Deployment, Doku | teilweise (Unit- und Browser-Tests, Code-Splitting, Doku; Deployment offen) |
-
-## Lizenz
-
-Veröffentlicht unter der [MIT-Lizenz](LICENSE).
+Released under the [MIT License](LICENSE).
